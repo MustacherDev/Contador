@@ -1,0 +1,12 @@
+{
+
+  "include": [
+    "src/**/*", // Include all files in the 'src' directory and its subdirectories
+    "*.js" // Include JavaScript files directly in the root
+  ],
+  "exclude": [
+    "node_modules", // Exclude node_modules for performance
+    "**/dist", // Exclude build output directories
+    "**/build"
+  ]
+}
