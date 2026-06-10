@@ -1,9 +1,4 @@
 function stateMenuSetup(){
-    manager = new GameManager();
-    manager.init();
-    //playSound(SND.POP);
-
-    //manager.addParticle(particleClick(input.mouseX, input.mouseY));
 }
 
 function stateMenu(dt){
@@ -17,11 +12,11 @@ function stateMenu(dt){
 
 function stateMenuDraw(ctx, cam = mainCam){;
 
-    manager.drawingCam = cam;
+    // manager.drawingCam = cam;
     
     ctx.save();
 
-    ctx.fillStyle = manager.mainRoom.backgroundColor.toCSS();
+    ctx.fillStyle = manager.backgroundColor.toCSS();
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
     //screenBorderManager.draw(ctx);
@@ -39,8 +34,8 @@ function stateMenuDraw(ctx, cam = mainCam){;
     ctx.save();
     ctx.translate(canvasOffsetX, canvasOffsetY);
     ctx.scale(canvasSclX, canvasSclY);
-    manager.drawGUIRequests(ctx);
-    manager.drawGUI(ctx);
+    // manager.drawGUIRequests(ctx);
+    // manager.drawGUI(ctx);
 
     ctx.restore();
 

@@ -12,36 +12,12 @@ var sounds = [];
 const SND = Object.freeze(new Enum(
   "HIT",
   "POP",
-  "CATO",
-  "CATI",
-  "CATII",
-  "CATON",
-  "CATA",
-  "BALLOONINFLATE",
-  "BALLOONPOP",
-  "MINEEATING",
-  "MUSICELEVATOR",
-  "MEOW1",
-  "MEOW2",
-  "ANGRYMEOW",
   "TOTAL"
 ));
 
 const sndPaths = [
   "Hit.mp3",
   "Pop.mp3",
-  "o.mp3",
-  "i.mp3",
-  "ii.mp3",
-  "on.mp3",
-  "a.mp3",
-  "ballooninflate.ogg",
-  "balloon_pop.ogg",
-  "eatingMine.mp3",
-  "elevatorMusic.mp3",
-  "meow1.mp3",
-  "meow2.mp3",
-  "angryMeow.mp3"
 ];
 
 class MustAudio {
@@ -67,15 +43,6 @@ class MustAudio {
 
 for (var i = 0; i < sndPaths.length; i++) {
   sounds.push(new MustAudio(new Howl({ src: ["Sounds/" + sndPaths[i]] })));
-}
-
-sounds[SND.HIT].volume(0.25);
-sounds[SND.ANGRYMEOW].volume(0.25);
-sounds[SND.MUSICELEVATOR].volume(0.1);
-
-var catSounds = [SND.CATO, SND.CATI, SND.CATA, SND.CATON];
-for(var soundId of catSounds){
-  sounds[soundId].volume(0.25);
 }
 
 
@@ -153,17 +120,6 @@ function fadingStopSound(soundInd, duration = 1000, soundId = -1) {
 const SPR = Object.freeze(new Enum(
   "WHITEFRAME",
   "TEXTBOX",
-  "SPOTHOLE",
-  "STARTBUTTONS",
-  "MONKEYWHEEL",
-  "MONKEYSPIN",
-  "OIIA",
-  "CATFOOD",
-  "CALENDAR",
-  "BIRTHDAY",
-  "BANANA",
-  "BALLOONZOMBIE",
-  "GREENARROW",
   "TOTAL"
 ));
 
@@ -183,17 +139,6 @@ console.log("IMAGES BEEN CREATED");
 var images = new Map([
   ["WhiteBox", createImageSimple("whiteFrame.png")],
   ["TextBox", createImageSimple("textBox2.png")],
-  ["SpotHole", createImageSimple("hole.png")],
-  ["Buttons", createImageSimple("buttons.png")],
-  ["MonkeyWheel", createImageSimple("monkeySpin3.png")],
-  ["MonkeySpin", createImageSimple("monkeySpin.png")],
-  ["Oiia", createImageSimple("uiia.png")],
-  ["CatFood", createImageSimple("catFood.png")],
-  ["Calendar", createImageSimple("calendar.png")],
-  ["Birthday", createImageSimple("birthday.png")],
-  ["Banana", createImageSimple("banana.png")],
-  ["BalloonZombie", createImageSimple("balloonZombie.png")],
-  ["GreenArrow", createImageSimple("greenArrow.png")]
   ]
 );
 
@@ -217,17 +162,6 @@ function loadSprites() {
     }
     sprites[SPR.WHITEFRAME] = createSpriteComplete("WhiteBox", 16, 16, 3, 3);
     sprites[SPR.TEXTBOX] = createSpriteComplete("TextBox", 6, 6, 3, 3);
-    sprites[SPR.SPOTHOLE] = createSpriteComplete("SpotHole");
-    sprites[SPR.PLAYBUTTONS] = createSpriteComplete("Buttons", 510, 467, 2, 1);
-    sprites[SPR.MONKEYSPIN] = createSpriteComplete("MonkeySpin", 220, 220, 5, 6);
-    sprites[SPR.MONKEYWHEEL] = createSpriteComplete("MonkeyWheel", 300, 237, 2, 2);
-    sprites[SPR.OIIA] = createSpriteComplete("Oiia", 160, 200, 3, 1);
-    sprites[SPR.CATFOOD] = createSpriteComplete("CatFood", 459, 288);
-    sprites[SPR.CALENDAR] = createSpriteComplete("Calendar", 214, 186);
-    sprites[SPR.BIRTHDAY] = createSpriteComplete("Birthday", 266, 254, 2, 1);
-    sprites[SPR.BANANA] = createSpriteComplete("Banana");
-    sprites[SPR.BALLOONZOMBIE] = createSpriteComplete("BalloonZombie", 86, 86, 3, 3);
-    sprites[SPR.GREENARROW] = createSpriteComplete("GreenArrow");
     
 
     var success = true;

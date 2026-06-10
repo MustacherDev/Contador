@@ -5,8 +5,6 @@ function stateInit(dt){
         loadSprites();
         executingState = stateMenu;
 
-   
-        
         stateMenuSetup();
     }
 
