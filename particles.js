@@ -202,11 +202,6 @@ class ParticleRotateRect extends ParticleRect{
 
 
 
-
-
-
-
-
 class ParticleText extends Particle{
   constructor(x, y, life, text, color){
     super(x, y, life);

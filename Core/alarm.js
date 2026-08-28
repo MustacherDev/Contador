@@ -1,10 +1,9 @@
 
 
 class Alarm {
-  constructor(start, end, paused = false){
-    this.timer = start;
-    this.time = end;
-    this.timeInit = end;
+  constructor(duration, startTime = 0, paused = false){
+    this.timer = startTime;
+    this.duration = duration;
     this.finished = false;
     this.paused = paused;
     this.loop = false;
@@ -16,7 +15,7 @@ class Alarm {
       this.timer += dt;
     }
 
-    if(this.timer >= this.time){
+    if(this.timer >= this.duration){
       this.finished = true;
 
       if(this.loop){
@@ -26,19 +25,18 @@ class Alarm {
     }
   }
 
-  setTime(time){
-    this.time = time;
-    this.timeInit = time;
+  setDuration(duration){
+    this.duration = duration;
   }
 
-  restart(startTime = 0){
+  restart(){
     this.finished = false;
-    this.timer = startTime;
+    this.timer = 0;
   }
 
   rewind(){
     this.finished = false;
-    this.timer -= this.time;
+    this.timer -= this.duration;
   }
 
   stop(){
@@ -46,14 +44,13 @@ class Alarm {
     this.paused = true;
   }
 
-  start(extraTime = 0){
-    this.time = Math.max(this.timeInit + extraTime, 1);
+  start(){
     this.restart();
     this.paused = false;
   }
 
   end(){
-    this.timer = this.time;
+    this.timer = this.duration;
     this.finished = true;
   }
 
@@ -66,7 +63,7 @@ class Alarm {
   }
 
   percentage(){
-    return clamp(this.timer/this.time, 0, 1);
+    return clamp(this.timer/this.duration, 0, 1);
   }
 }
 
@@ -104,31 +101,3 @@ function zeroPad(number, targetLength) {
   return numberString;
 }
 
-
-function drawAlarm(ctx, alarm, x, y, height){
-
-  var borderHei = height*0.05;
-  ctx.font = Math.floor(height*0.95/2.2) + "px Arial";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-
-
-
-  var alarmTimeString = alarm.time + "";
-
-  var width = ctx.measureText(alarmTimeString).width * 1.2;
-  var borderWid = width * 0.05;
-
-
-  ctx.fillStyle = "rgb(200,200,200)";
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "rgb(0,0,0)";
-  ctx.fillRect(x + borderWid, y + borderHei, width - borderWid*2, height - borderHei*2);
-
-  var hei = height*0.95;
-
-  ctx.fillStyle = alarm.paused ? "rgb(100, 100, 255)" : "rgb(255, 100, 100)";
-  ctx.fillText(zeroPad(alarm.timer, alarmTimeString.length) , x + borderWid, y + borderHei + hei/4 );
-  ctx.fillText(alarmTimeString , x + borderWid, y + borderHei + hei/2 + hei/4);
-
-}

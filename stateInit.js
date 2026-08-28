@@ -8,6 +8,7 @@ function stateInit(dt){
         stateMenuSetup();
     }
 
+    
     stateInitDraw(ctx, mainCam);
     mainCam.lateUpdate(dt);
 }

@@ -10,14 +10,18 @@ console.log("IMAGES BEEN CREATED");
 var sounds = [];
 
 const SND = Object.freeze(new Enum(
-  "HIT",
-  "POP",
+  // "HIT",
+  // "POP",
+  "TICK",
+  "TOCK",
   "TOTAL"
 ));
 
 const sndPaths = [
-  "Hit.mp3",
-  "Pop.mp3",
+  // "Hit.mp3",
+  // "Pop.mp3",
+  "tick.mp3",
+  "tock.mp3"
 ];
 
 class MustAudio {
@@ -46,6 +50,8 @@ for (var i = 0; i < sndPaths.length; i++) {
 }
 
 
+sounds[SND.TICK].volume(0.4);
+sounds[SND.TOCK].volume(0.4);
 
 function playSound(soundInd) {
   sounds[soundInd].howl.volume(sounds[soundInd].vol);
@@ -118,8 +124,8 @@ function fadingStopSound(soundInd, duration = 1000, soundId = -1) {
 
 
 const SPR = Object.freeze(new Enum(
-  "WHITEFRAME",
-  "TEXTBOX",
+  // "WHITEFRAME",
+  // "TEXTBOX",
   "TOTAL"
 ));
 
@@ -137,8 +143,8 @@ path = "Sprites/";
 console.log("IMAGES BEEN CREATED");
 
 var images = new Map([
-  ["WhiteBox", createImageSimple("whiteFrame.png")],
-  ["TextBox", createImageSimple("textBox2.png")],
+  // ["WhiteBox", createImageSimple("whiteFrame.png")],
+  // ["TextBox", createImageSimple("textBox2.png")],
   ]
 );
 
@@ -160,8 +166,8 @@ function loadSprites() {
     for (var i = 0; i < SPR.TOTAL; i++) {
       sprites.push(null);
     }
-    sprites[SPR.WHITEFRAME] = createSpriteComplete("WhiteBox", 16, 16, 3, 3);
-    sprites[SPR.TEXTBOX] = createSpriteComplete("TextBox", 6, 6, 3, 3);
+    // sprites[SPR.WHITEFRAME] = createSpriteComplete("WhiteBox", 16, 16, 3, 3);
+    // sprites[SPR.TEXTBOX] = createSpriteComplete("TextBox", 6, 6, 3, 3);
     
 
     var success = true;

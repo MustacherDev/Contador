@@ -95,9 +95,15 @@ class BdayCounter{
 class CalendarDashboard {
     constructor() {
 
+
+
         // Birthday
         this.birthMonth = 12;
         this.birthDay = 6;
+
+        // Actual Time
+        this.actSec = 0;
+        this.prevSec = 0;
 
         // Display
         this.days = 0;
@@ -107,12 +113,15 @@ class CalendarDashboard {
 
         this.done = false;
 
+        this.startAlarm = new Alarm(200);
+        this.progress = 0;
+
         this.x = 0;
         this.y = 0;
 
         // Messages
         this.messages = [
-            {text: "BEETROOT", tags: ["neutral"]},
+            {text: "BEETROOT", subtext: "...", tags: ["neutral"]},
             {text: "TENHA UM BOM DIA", tags: ["positive", "friendly"]},
             {text: "OLÁAA", tags: ["friendly", "positive", "funny"]},
             {text: "EAE, TUDO BEM?", tags: ["friendly", "neutral", "positive"]},
@@ -139,6 +148,20 @@ class CalendarDashboard {
             "Sexta-feira",
             "Sábado"
         ];
+
+        // this.animeText = new TextLine();
+        // var line = this.animeText;
+
+        // line.addText("H", {font: "48px Arial"});
+        // line.addText("ello World", {
+        //     font: "18px Arial",
+        //     color: "#9e3030",
+        //     effects:{wave:{amplitude:5, phase:0, speed:0.05, phaseX:0.05}},
+        // });
+        // line.layout();
+
+        this.tickIndex = 0;
+
     }
 
 
@@ -229,7 +252,26 @@ class CalendarDashboard {
     }
 
     update(dt) {
+        this.startAlarm.update(dt);
+        this.progress = this.startAlarm.percentage();
+
         const remaining = this.getRemainingTime();
+
+        
+        const now = new Date();
+        this.actSec = now.getSeconds();
+        if(this.actSec != this.prevSec){
+
+            // playSound();
+            this.tickIndex+= 1;
+            if(this.tickIndex == 2) this.tickIndex = 0;
+
+            playSound(SND.TICK + this.tickIndex);
+            this.prevSec = this.actSec;
+        }
+
+        // this.animeText.update(dt);
+        
 
         this.days = remaining.days;
         this.hours = remaining.hours;
@@ -263,6 +305,8 @@ class CalendarDashboard {
             this.y = Math.random() * amp - amp / 2;
         }
 
+        //this.animeText.update(dt);
+
         manager.addDrawObject(this);
     }
 
@@ -273,16 +317,21 @@ class CalendarDashboard {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
+        // this.animeText.draw(ctx);
+
         if(!this.isCountdownMode()){
+
+            var xDisplace = -tweenInOut(1-this.progress)*600;
+
             ctx.font = "32px Fixedsys";
             ctx.textAlign = "left";
             ctx.fillStyle = "rgb(180,180,180)";
-            ctx.fillText(this.getDateString(), -canvasWidth/2 + 20, -canvasHeight/2 + 40);
+            ctx.fillText(this.getDateString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 40);
             
             ctx.textAlign = "left";
             ctx.font = "48px Fixedsys";
             ctx.fillStyle = "rgb(255,255,255)";
-            ctx.fillText(this.getTimeString(), -canvasWidth/2 + 20, -canvasHeight/2 + 100);
+            ctx.fillText(this.getTimeString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 100);
         }
 
         ctx.font = "100px Fixedsys";
@@ -303,14 +352,21 @@ class CalendarDashboard {
         } else {
 
             var messageY = -60;
+            ctx.font = Math.floor(100 - (1-tweenOut(this.progress))*100) + "px Fixedsys";
             ctx.fillStyle = "rgb(255,255,0)";
             ctx.fillText(this.message, 0, messageY);
 
-            ctx.font = "60px Fixedsys";
-            ctx.fillStyle = "rgb(255,255,0)";
-            ctx.fillText(this.messageSubtext, 0, messageY + 80);
+            
+            if(this.messageSubtext){
+                ctx.font = Math.floor(60 - (1-tweenOut(this.progress))*60) + "px Fixedsys";
+                ctx.fillStyle = "rgb(255,255,0)";
+                ctx.fillText(this.messageSubtext, 0, messageY + 80);
+            }
 
-            var daysLeftY = 180;
+
+            var yDisplace = tweenInOut(1-this.progress)*400;
+            ctx.font = "60px Fixedsys";
+            var daysLeftY = 180 + yDisplace;
             ctx.fillStyle = "rgb(255,255,255)";
             ctx.fillText(`${this.days} DIAS`, 0, daysLeftY);
 

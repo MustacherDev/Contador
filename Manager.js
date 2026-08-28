@@ -9,6 +9,8 @@ class GameManager{
 
         this.drawList = [];
         this.backgroundColor = new Color(0,0,0);
+
+        this.fadeAlarm = new Alarm(50);
     }
 
     update(dt){
@@ -22,10 +24,16 @@ class GameManager{
 
         this.calendarDashboard.update(dt);
         this.bdayCounter.update(dt);
+
+        this.fadeAlarm.update(dt);
     }
 
     draw(ctx){
+        if(!this.fadeAlarm.finished){
 
+            ctx.fillStyle = "rgba(0,0,0,"+ (1-this.fadeAlarm.percentage()) +")";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+        }
     }
 
     drawRequests(ctx) {

@@ -145,3 +145,57 @@ class StateDuoFlow{
   }
 }
 
+class StateMachine{
+  constructor(stateDurationList){
+    this.stateList = [];
+    this.state = 0;
+    this.progress = 0;
+
+    this.totalTime  = 0;
+    this.totalTimer = 0;
+    this.totalProgress = 0;
+
+    this.autoProgress = false;
+    this.canProgress  = false;
+    this.finished = false;
+    
+    for(var duration of stateDurationList){
+      this.stateList.push(new Alarm(duration));
+      this.time += duration;
+    }
+  }
+
+  getProgress(state = this.state){
+    return this.stateList[state].percentage();
+  }
+
+  proceed(){
+    if(!this.canProgress) return;
+    this.canProgress = false;
+    if(this.state < this.stateList.length-1){
+      this.state++;
+    } else {
+      this.finished = true;
+    }
+  }
+
+  update(dt){
+    this.stateList[this.state].update(dt);
+    this.progress = this.getProgress();
+
+    if(!this.canProgress){
+      if(this.stateList[this.state].finished){
+        this.canProgress = true;
+      }
+    }
+
+    if(this.autoProgress){
+      this.proceed();
+    }
+
+    this.totalTimer += dt;
+    this.totalProgress = this.totalTimer/this.totalTime;
+  }
+}
+
+

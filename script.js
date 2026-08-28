@@ -29,7 +29,7 @@ function step() {
   canvas.style.cursor = 'default';
 
 
-  ctx.fillStyle = "rgb(10, 10, 10)";
+  ctx.fillStyle = "rgb(0,0,0)";
   ctx.fillRect(0,0, canvas.width, canvas.height);
 
 
