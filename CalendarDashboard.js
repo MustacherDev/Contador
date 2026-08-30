@@ -113,7 +113,7 @@ class CalendarDashboard {
 
         this.done = false;
 
-        this.introAlarm = new Alarm(300);
+        this.introAlarm = new Alarm(400);
         this.startAlarm = new Alarm(200);
         this.state = 0;
         this.progress = 0;

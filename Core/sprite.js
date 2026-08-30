@@ -55,7 +55,8 @@ class SpriteMap{
 
     getImage(index) {
 
-        var ind = this.smartIndex(index);
+
+        var ind = this.smartIndex(Math.floor(index));
 
         if(ind == -1) return null;
         return ({x:this.corners[ind].x, y:this.corners[ind].y, width: this.width, height: this.height});
@@ -116,7 +117,6 @@ class Sprite {
     this.height = hei;
 
     this.spriteMap = new SpriteMap();
-    this.imgNum = 1;
   }
 
   configure(){
@@ -127,8 +127,10 @@ class Sprite {
       this.spriteMap.setImage(0, 0, this.width, this.height);
       return;
     }
+  }
 
-    this.imgNum = this.spriteMap.corners.length;
+  getImgNum(){
+    return this.spriteMap.corners.length;
   }
 
 
@@ -190,6 +192,7 @@ class SpriteInstance {
       x:x,
       y:y,
       img:img,
+      alpha:1,
       xScl:1,
       yScl:1,
       ang:0,
@@ -222,7 +225,15 @@ class SpriteInstance {
     this.transform.relYOff = originY;
   }
 
+  setAlpha(alpha){
+    this.transform.alpha = alpha;
+  }
+
   draw(ctx){
+    var alpha = ctx.globalAlpha;
+
+    ctx.globalAlpha = this.transform.alpha;
+
     this.sprite.drawExtRelative(
       this.transform.x,
       this.transform.y,
@@ -234,5 +245,7 @@ class SpriteInstance {
       this.transform.relYOff,
       ctx
     );
+
+    ctx.globalAlpha = alpha;
   }
 }

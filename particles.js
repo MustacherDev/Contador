@@ -36,7 +36,7 @@ class Particle{
   }
 
   pushDraw() {
-    manager.addDrawRequest(new DrawRequest(this, this.depth, 0), OBJECT.DRAW);
+    manager.addDrawRequest(new DrawRequest(this, this.depth, 0));
   }
 
   draw(ctx){
@@ -61,6 +61,8 @@ class Particle{
     this.y += this.spd.y*dt;
 
     this.angle += this.angleSpd*dt;
+
+    this.pushDraw();
   }
 
   update(dt){
@@ -299,9 +301,10 @@ class ParticleSprite extends Particle{
   }
 
   draw(ctx){
+   
     var alpha = ctx.globalAlpha;
     ctx.globalAlpha = this.alpha;
-    this.sprite.drawExt(this.x, this.y, Math.floor(this.img)%this.sprite.imgNum , this.scl, this.scl, this.angle, this.xOffset, this.yOffset);
+    this.sprite.drawExtRelative(this.x, this.y, Math.floor(this.img)%this.sprite.getImgNum() , this.scl, this.scl, this.angle, this.xOffset, this.yOffset);
     ctx.globalAlpha = alpha;
   }
 }
@@ -344,6 +347,20 @@ function particleClick(x, y, scl = 5){
   return part;
 }
 
+
+function particleExplosion(x, y, scl = 3){
+  var life = 40;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.EXPLOSION]);
+  part.xOffset = 0.5;
+  part.yOffset = 0.5;
+  part.scl = scl;
+  part.img = 0;
+  part.imgSpd = 18/(life+2);
+
+  part.depth = -3000;
+
+  return part;
+}
 
 
 

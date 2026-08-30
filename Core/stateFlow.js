@@ -4,6 +4,7 @@ class StateFlow{
     this.stateTimer = 0;
     this.stateTime = stateTime;
     this.progress = 0;
+    this.setState(this.state);
   }
 
   setState(state){

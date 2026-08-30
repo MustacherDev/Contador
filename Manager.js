@@ -35,6 +35,10 @@ class BeatPattern {
     }
 }
 
+
+
+
+
 class GameManager{
     constructor(){
         this.particles = [];
@@ -65,7 +69,13 @@ class GameManager{
             // new BeatPattern(8, 64, [2, 4, 36]),
             // new BeatPattern(8, 64, [16, 40, 44, 48]),
             // new BeatPattern(8, 64, [23]),
-        ]
+        ];
+
+        var peachFacing = chance(0.5) ? 1 : -1;
+        var peachKart = new PeachKart(canvasWidth*0.5 - canvasWidth*peachFacing*1.1, canvasHeight - 100, peachFacing, randInt(0, 3));
+        this.addObject(peachKart);
+
+
     }
 
     beatTrigger(beat){
@@ -115,6 +125,34 @@ class GameManager{
         this.calendarDashboard.update(dt);
 
         this.fadeAlarm.update(dt);
+
+        // REMOVING INACTIVE OBJECTS
+        for(var i = 0; i < this.objects.length; i++){
+            if(this.objects[i].active) continue;
+
+            this.objects.splice(i, 1);
+            i--;
+        }
+
+        // REMOVING INACTIVE PARTICLES 
+        for(var i = 0; i < this.particles.length; i++){
+            if(this.particles[i].active) continue;
+
+            this.particles.splice(i, 1);
+            i--;
+        }   
+
+        if(input.mouseState[0][1]) {
+            console.log("MOUSE COORDS (" + input.mouseX + ", " + input.mouseY + ")");
+        }
+    }
+
+    addObject(object){
+        this.objects.push(object);
+    }
+
+    addParticle(particle){
+        this.particles.push(particle);
     }
 
     draw(ctx){
