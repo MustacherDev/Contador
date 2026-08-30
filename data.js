@@ -1,3 +1,39 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// class AssetManager { 
+//   constructor() { 
+//     this.images = new Map(); 
+//     this.sprites = new Map();
+//     this.audios = new Map(); 
+//     this.audioSets = new Map(); 
+//   }
+
+
+// }
+
+
+
 var path = "Sounds/";
 
 Howler.autoUnlock = true;
@@ -10,24 +46,36 @@ console.log("IMAGES BEEN CREATED");
 var sounds = [];
 
 const SND = Object.freeze(new Enum(
-  // "HIT",
-  // "POP",
   "TICK",
   "TOCK",
+  "CORRECT",
+  "WATERDROP",
+  "POP",
+  "POOF",
+  "WRENCH",
+  "SPLASH",
+  "SHOOT",
+  "STOMP",
   "TOTAL"
 ));
 
 const sndPaths = [
-  // "Hit.mp3",
-  // "Pop.mp3",
   "tick.mp3",
-  "tock.mp3"
+  "tock.mp3",
+  "correct.wav",
+  "waterDrop1.mp3",
+  "Pop.mp3",
+  "poof.mp3",
+  "socketWrench.mp3",
+  "splash.mp3",
+  "Shoot1.wav",
+  "stomp.mp3"
 ];
 
 class MustAudio {
   constructor(howlAudio) {
     this.howl = howlAudio;
-    this.vol = 0.75;
+    this.vol = 0.5;
     this.looping = false;
     this.volume(this.vol);
     this.loop(false);
@@ -44,6 +92,7 @@ class MustAudio {
     this.howl.loop(loop);
   }
 }
+
 
 for (var i = 0; i < sndPaths.length; i++) {
   sounds.push(new MustAudio(new Howl({ src: ["Sounds/" + sndPaths[i]] })));
@@ -126,6 +175,7 @@ function fadingStopSound(soundInd, duration = 1000, soundId = -1) {
 const SPR = Object.freeze(new Enum(
   // "WHITEFRAME",
   // "TEXTBOX",
+  "PORTRAITS",
   "TOTAL"
 ));
 
@@ -145,6 +195,7 @@ console.log("IMAGES BEEN CREATED");
 var images = new Map([
   // ["WhiteBox", createImageSimple("whiteFrame.png")],
   // ["TextBox", createImageSimple("textBox2.png")],
+  ["Portraits", createImageSimple("portrait2.png")]
   ]
 );
 
@@ -166,7 +217,7 @@ function loadSprites() {
     for (var i = 0; i < SPR.TOTAL; i++) {
       sprites.push(null);
     }
-    // sprites[SPR.WHITEFRAME] = createSpriteComplete("WhiteBox", 16, 16, 3, 3);
+    sprites[SPR.PORTRAITS] = createSpriteComplete("Portraits", 256, 256, 6, 6);
     // sprites[SPR.TEXTBOX] = createSpriteComplete("TextBox", 6, 6, 3, 3);
     
 

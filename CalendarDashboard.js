@@ -116,8 +116,11 @@ class CalendarDashboard {
         this.startAlarm = new Alarm(200);
         this.progress = 0;
 
-        this.x = 0;
-        this.y = 0;
+        this.x =  canvasWidth / 2;
+        this.y =  canvasHeight / 2;
+
+        this.shakeX = 0;
+        this.shakeY = 0;
 
         // Messages
         this.messages = [
@@ -160,8 +163,7 @@ class CalendarDashboard {
         // });
         // line.layout();
 
-        this.tickIndex = 0;
-
+      
     }
 
 
@@ -258,18 +260,7 @@ class CalendarDashboard {
         const remaining = this.getRemainingTime();
 
         
-        const now = new Date();
-        this.actSec = now.getSeconds();
-        if(this.actSec != this.prevSec){
-
-            // playSound();
-            this.tickIndex+= 1;
-            if(this.tickIndex == 2) this.tickIndex = 0;
-
-            playSound(SND.TICK + this.tickIndex);
-            this.prevSec = this.actSec;
-        }
-
+       
         // this.animeText.update(dt);
         
 
@@ -296,13 +287,10 @@ class CalendarDashboard {
             this.done = true;
         }
 
-        this.x = 0;
-        this.y = 0;
-
         if (this.days === 0 && this.hours < 4) {
             let amp = 6 - this.hours;
-            this.x = Math.random() * amp - amp / 2;
-            this.y = Math.random() * amp - amp / 2;
+            this.shakeX = Math.random() * amp - amp / 2;
+            this.shakeY = Math.random() * amp - amp / 2;
         }
 
         //this.animeText.update(dt);
@@ -312,7 +300,7 @@ class CalendarDashboard {
 
     draw(ctx) {
         ctx.save();
-        ctx.translate(canvasWidth / 2, canvasHeight / 2);
+        ctx.translate(this.x +this.shakeX, this.y +this.shakeY);
 
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
