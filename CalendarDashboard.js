@@ -113,7 +113,9 @@ class CalendarDashboard {
 
         this.done = false;
 
+        this.introAlarm = new Alarm(300);
         this.startAlarm = new Alarm(200);
+        this.state = 0;
         this.progress = 0;
 
         this.x =  canvasWidth / 2;
@@ -162,8 +164,10 @@ class CalendarDashboard {
         //     effects:{wave:{amplitude:5, phase:0, speed:0.05, phaseX:0.05}},
         // });
         // line.layout();
+        this.finishedIntro = false;
 
       
+        this.specialDay = ""; // Christmas, Halloween, Easter, Newyear, "Brotherbday", "Motherbday", "Fatherbday"
     }
 
 
@@ -253,15 +257,36 @@ class CalendarDashboard {
         return `${weekday} ${now.toLocaleDateString()}`;
     }
 
+    getWeekdayString(){
+        const now = new Date();
+
+        const weekday =
+            this.weekdays[now.getDay()];
+        return weekday;
+    }
+
     update(dt) {
-        this.startAlarm.update(dt);
-        this.progress = this.startAlarm.percentage();
+
+        
+        if(this.finishedIntro){
+            this.startAlarm.update(dt);
+            this.progress = this.startAlarm.percentage();
+        } else {
+            this.introAlarm.update(dt);
+            if(this.introAlarm.finished){
+                this.finishedIntro = true;
+            }
+        }
+
+
+
+
 
         const remaining = this.getRemainingTime();
 
         
        
-        // this.animeText.update(dt);
+    
         
 
         this.days = remaining.days;
@@ -298,14 +323,9 @@ class CalendarDashboard {
         manager.addDrawObject(this);
     }
 
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x +this.shakeX, this.y +this.shakeY);
-
+    drawHud(ctx){
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-
-        // this.animeText.draw(ctx);
 
         if(!this.isCountdownMode()){
 
@@ -386,6 +406,36 @@ class CalendarDashboard {
                 ctx.fillText(this.message[i], xx, -120);
             }
         }
+    }
+
+    drawIntro(ctx){
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        var introProg = this.introAlarm.percentage();
+
+        var alpha = Math.min(zigzag(introProg)*3, 1);
+        alpha = tweenOut(alpha);
+
+        ctx.font = "64px Fixedsys";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(180,180,180, " + alpha + ")";
+        ctx.fillText(this.getWeekdayString(),0, -50);
+        
+        ctx.textAlign = "center";
+        ctx.font = "52px Fixedsys";
+        ctx.fillStyle = "rgba(255,255,255, " + alpha + ")";
+        ctx.fillText(this.getTimeString(), 0, 20);
+        
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x +this.shakeX, this.y +this.shakeY);
+
+        this.drawHud(ctx);
+        this.drawIntro(ctx);
+
 
         ctx.restore();
     }

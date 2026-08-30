@@ -71,7 +71,7 @@ class GameManager{
     beatTrigger(beat){
         var soundList = [SND.TICK, SND.TOCK, SND.WATERDROP, SND.POP, SND.WRENCH];
         for(var i = 0; i < this.beatPatterns.length; i++){
-            if(this.beatPatterns[i].checkBeat(beat)) playSound(soundList[i]);
+            if(this.beatPatterns[i].checkBeat(beat)) SoundPlayer.play(soundList[i]);
         }
     }
     

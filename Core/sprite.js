@@ -107,65 +107,32 @@ class SpriteMap{
 
 
 
-// Sprite OBJECT
+// Sprite Source Definition
 class Sprite {
-  constructor(texture, wid, hei, texWid, texHei){
-    if (!(texture instanceof HTMLImageElement)) {
-      throw new TypeError("img must be an instance of HTMLImageElement");
-    }
-    if (typeof wid !== 'number' || typeof hei !== 'number') {
-      throw new TypeError("width and height must be numbers");
-    }
-
+  constructor(texture, wid, hei){
     this.texture = texture;
-    this.texWid = texWid;
-    this.texHei = texHei;
 
     this.width = wid;
     this.height = hei;
 
-    this.imgNumX = Math.floor(this.texWid / this.width);
-    this.imgNumY = Math.floor(this.texHei / this.height);
-    this.imgNum = this.imgNumX * this.imgNumY;
-
     this.spriteMap = new SpriteMap();
-    this.spriteMap.setImage(0, 0, wid, hei);
+    this.imgNum = 1;
   }
 
-  setSubimg(imgWid, imgHei, numX, numY = 1, texX = 0, texY = 0){
-    this.width = imgWid;
-    this.height = imgHei;
+  configure(){
+    if(this.width == -1 || this.height == -1){
+      this.width = this.texture.image.naturalWidth;
+      this.height = this.texture.image.naturalHeight;
 
-    this.imgNumX = numX;
-    this.imgNumY = numY;
+      this.spriteMap.setImage(0, 0, this.width, this.height);
+      return;
+    }
 
-    this.imgNum = numX*numY
-
-    this.spriteMap = new SpriteMap();
-    this.spriteMap.setImages(texX, texY, imgWid, imgHei, numX, numY, false);
-  }
-
-  setImage(imgX, imgY, imgWid, imgHei) {
-    this.spriteMap.setImage(imgX, imgY, imgWid, imgHei);
-  }
-
-  setImages(imgX, imgY, imgWid, imgHei, imgNumX, imgNumY, verticalCounting = false) {
-    this.spriteMap.setImages(imgX, imgY, imgWid, imgHei, imgNumX, imgNumY, verticalCounting);
-  }
-
-  addImage(imgX, imgY) {
-    this.spriteMap.addImage(imgX, imgY);
-  }
-
-  addImages(imgX, imgY, imgNumX, imgNumY, verticalCounting = false) {
-    this.spriteMap.addImages(imgX, imgY, imgNumX, imgNumY, verticalCounting);
+    this.imgNum = this.spriteMap.corners.length;
   }
 
 
   drawExt(x, y, img, xscl, yscl, ang, sprOffsetX, sprOffsetY, context = ctx){
-    // img = img%(this.imgNumX*this.imgNumY);
-    // var imgx = img % this.imgNumX;
-    // var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
 
     var area = this.spriteMap.getImage(img);
     var imgX = area.x;
@@ -177,9 +144,6 @@ class Sprite {
   }
 
   drawExtRelative(x, y, img, xscl, yscl, ang, sprOffsetXPercent, sprOffsetYPercent, context = ctx){
-    // img = img%(this.imgNumX*this.imgNumY);
-    // var imgx = img % this.imgNumX;
-    // var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
 
     var area = this.spriteMap.getImage(img);
     var imgX = area.x;
@@ -208,18 +172,67 @@ class Sprite {
 
     ctx.rotate(angle);
 
-    ctx.drawImage(this.texture, sourceImgX, sourceImgY, sourceImgWid, sourceImgHei, -spriteOffsetX, -spriteOffsetY, this.width, this.height);
+    ctx.drawImage(this.texture.image, sourceImgX, sourceImgY, sourceImgWid, sourceImgHei, -spriteOffsetX, -spriteOffsetY, this.width, this.height);
 
     ctx.restore();
   }
 }
 
+// A WRAPPER AROUND THE SPRITE CLASS
+// SUPPORTS INDIVIDUAL AND PERSISTENT TRANSFORMATION VARIABLES
+// LIGHT-WEIGHT AND CONVENIENT
+class SpriteInstance {
+  constructor(sprite, x = 0, y = 0, img = 0){
+    this.sprite = sprite;
 
+    // TRANSFORMATION
+    this.transform = {
+      x:x,
+      y:y,
+      img:img,
+      xScl:1,
+      yScl:1,
+      ang:0,
+      relXOff:0,
+      relYOff:0
+    }
+  }
 
-function createSprite(img){
-    return new Sprite(img, img.naturalWidth, img.naturalHeight, img.naturalWidth, img.naturalHeight);
-}
+  // TRANSFORM METHODS
+  setPosition(x, y){
+    this.transform.x = x;
+    this.transform.y = y;
+  }
 
-function createSpriteExt(img, wid, hei){
-  return new Sprite(img, wid, hei, img.naturalWidth, img.naturalHeight);
+  setFrame(frame){
+    this.transform.img = frame;
+  }
+
+  setRotation(ang){
+    this.transform.ang = ang;
+  }
+
+  setScale(xScl, yScl){
+    this.transform.xScl = xScl;
+    this.transform.yScl = yScl;
+  }
+
+  setOrigin(originX, originY){
+    this.transform.relXOff = originX;
+    this.transform.relYOff = originY;
+  }
+
+  draw(ctx){
+    this.sprite.drawExtRelative(
+      this.transform.x,
+      this.transform.y,
+      this.transform.img,
+      this.transform.xScl,
+      this.transform.yScl,
+      this.transform.ang,
+      this.transform.relXOff,
+      this.transform.relYOff,
+      ctx
+    );
+  }
 }

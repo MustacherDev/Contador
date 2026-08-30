@@ -1,76 +1,31 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// class AssetManager { 
-//   constructor() { 
-//     this.images = new Map(); 
-//     this.sprites = new Map();
-//     this.audios = new Map(); 
-//     this.audioSets = new Map(); 
-//   }
-
-
-// }
-
-
-
-var path = "Sounds/";
-
 Howler.autoUnlock = true;
-console.log("IMAGES BEEN CREATED");
 
+const SPR = new Enum();
+var sprites = [];
 
-/// SOUND AND TEXTURES LOADER
-
-// Loading Sounds
+const SND = new Enum();
 var sounds = [];
 
-const SND = Object.freeze(new Enum(
-  "TICK",
-  "TOCK",
-  "CORRECT",
-  "WATERDROP",
-  "POP",
-  "POOF",
-  "WRENCH",
-  "SPLASH",
-  "SHOOT",
-  "STOMP",
-  "TOTAL"
-));
 
-const sndPaths = [
-  "tick.mp3",
-  "tock.mp3",
-  "correct.wav",
-  "waterDrop1.mp3",
-  "Pop.mp3",
-  "poof.mp3",
-  "socketWrench.mp3",
-  "splash.mp3",
-  "Shoot1.wav",
-  "stomp.mp3"
-];
+
+class MustTexture{
+  constructor(path){
+    this.path = path;
+    this.image = null;
+  }
+
+  createImage(){
+    var image = new Image();
+    image.src = this.path;
+    this.image = image;
+    return image;
+  }
+
+  checkLoaded(){
+    if(!this.image) return;
+    return this.image.complete;
+  }
+}
 
 class MustAudio {
   constructor(howlAudio) {
@@ -87,176 +42,192 @@ class MustAudio {
     this.howl.volume(volume);
   }
 
-  loop(loop){
+  loop(loop) {
     this.looping = loop;
     this.howl.loop(loop);
   }
 }
 
 
-for (var i = 0; i < sndPaths.length; i++) {
-  sounds.push(new MustAudio(new Howl({ src: ["Sounds/" + sndPaths[i]] })));
-}
+class Assets{ 
 
+  static images = new Map(); 
+  static sprites = new Map();
+  static audios = new Map(); 
 
-sounds[SND.TICK].volume(0.4);
-sounds[SND.TOCK].volume(0.4);
+  static texturesLoaded = false;
+  static spritesLoaded = false;
 
-function playSound(soundInd) {
-  sounds[soundInd].howl.volume(sounds[soundInd].vol);
-  return sounds[soundInd].howl.play();
-}
-
-
-var playingMusic = -1;
-
-function playMusic(musicInd){
-  if(musicInd == -1) return;
-  if(musicInd == playingMusic) return;
-
-  if(playingMusic != -1){
-    fadingStopSound(playingMusic, 2000);
-  }
-
-  playSound(musicInd);
-  playingMusic = musicInd;
-}
-
-function fadeMusic(musicInd, duration = 2000){
-  if(musicInd == -1) return;
-
-  fadingStopSound(musicInd, duration);
-  if(playingMusic == musicInd){
-    playingMusic = -1;
-  }
-}
-
-function stopMusic(musicInd){
-  if(musicInd == -1) return;
-
-  stopSound(musicInd);
-  if(playingMusic == musicInd){
-    playingMusic = -1;
-  }
-}
-
-function pauseSound(soundInd, soundId = -1) {
-  if (soundId == -1) {
-    sounds[soundInd].howl.pause();
-  } else {
-    sounds[soundInd].howl.pause(soundId);
-  }
-}
-
-function stopSound(soundInd, soundId = -1) {
-  if (soundId == -1) {
-    sounds[soundInd].howl.stop();
-  } else {
-    sounds[soundInd].howl.stop(soundId);
-  }
-}
-
-function fadingStopSound(soundInd, duration = 1000, soundId = -1) {
-  if (soundId == -1) {
-    sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
-    sounds[soundInd].howl.once('fade', () => {
-      sounds[soundInd].howl.stop();
-    });
-  } else {
-    sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration, soundId).once('fade', () => {
-      sounds[soundInd].howl.stop(soundId);
-    });
-  }
-}
-
-
-
-
-const SPR = Object.freeze(new Enum(
-  // "WHITEFRAME",
-  // "TEXTBOX",
-  "PORTRAITS",
-  "TOTAL"
-));
-
-
-
-
-
-
-var spritesLoaded = false;
-
-var sprites = [];
-
-path = "Sprites/";
-
-console.log("IMAGES BEEN CREATED");
-
-var images = new Map([
-  // ["WhiteBox", createImageSimple("whiteFrame.png")],
-  // ["TextBox", createImageSimple("textBox2.png")],
-  ["Portraits", createImageSimple("portrait2.png")]
-  ]
-);
-
-
-
-function createImageSimple(name){
-  return createImage("Sprites/" + name);
-}
-
-function createImage(src){
-  var image = new Image();
-  image.src = src;
-  return image;
-}
-
-
-function loadSprites() {
-  if (!spritesLoaded) {
-    for (var i = 0; i < SPR.TOTAL; i++) {
-      sprites.push(null);
-    }
-    sprites[SPR.PORTRAITS] = createSpriteComplete("Portraits", 256, 256, 6, 6);
-    // sprites[SPR.TEXTBOX] = createSpriteComplete("TextBox", 6, 6, 3, 3);
-    
-
-    var success = true;
-    for (var i = 0; i < SPR.TOTAL; i++) {
-      if(!sprites[i]){
-        console.log("SPRITE " + SPR.getName(i) + " WAS NOT CREATED");
-        success = false;
+  static checkTextures(){
+    for (var [key, texture] of this.images) {
+      if (!texture.checkLoaded()) {
+        return false;
       }
     }
+    this.texturesLoaded = true;
+    return true;
+  }
 
-    if(success){
-      spritesLoaded = true;
+  static loadSprites(){
+    if (this.spritesLoaded) return;
+
+    for (var i = 0; i < SPR.TOTAL; i++) {
+      sprites[i].configure();
+    }
+
+    this.spritesLoaded = true;
+
+    SPR.addEntry("TOTAL");
+    SND.addEntry("TOTAL");
+  }
+  
+  
+  static addSound(enumName, path, volume = 0.5){
+    var sound = new MustAudio(new Howl({ src: [path] }));
+    sound.volume(volume);
+    this.audios.set(enumName, sound);
+    SND.addEntry(enumName);
+    sounds.push(sound);
+  }
+
+  static getSound(key){
+    return this.audios.get(key);
+  }
+
+  static addSprite(enumName, path, config = {}){
+    var texture = this.images.get(path);
+
+    if(!texture){
+      texture = this.addTexture(path);
+    }
+
+    var wid = config.wid ?? -1;
+    var hei = config.hei ?? -1;
+
+    var sprite = new Sprite(texture, wid, hei);
+    
+    if(wid != -1 && hei != -1){
+      var cols = config.cols ?? 1;
+      var rows = config.rows ?? 1;
+      var imgX = config.imgX ?? 0;
+      var imgY = config.imgY ?? 0;
+
+      sprite.spriteMap.setImages(imgX, imgY, wid, hei, cols, rows, false);
+    } 
+
+    this.sprites.set(enumName, sprite);
+    SPR.addEntry(enumName);
+    sprites.push(sprite);
+  }
+
+  static getSprite(key){
+    return this.sprites.get(key);
+  }
+
+  static addTexture(path){
+    var texture = new MustTexture(path);
+    texture.createImage();
+    this.images.set(path, texture);
+    return texture;
+  }
+}
+
+
+
+
+
+
+class SoundPlayer {
+
+  static play(soundInd) {
+    sounds[soundInd].howl.volume(sounds[soundInd].vol);
+    return sounds[soundInd].howl.play();
+  }
+
+  static pause(soundInd, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.pause();
+    } else {
+      sounds[soundInd].howl.pause(soundId);
+    }
+  }
+
+  static stop(soundInd, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.stop();
+    } else {
+      sounds[soundInd].howl.stop(soundId);
+    }
+  }
+
+  // MAKES A SOUND FADE VOLUME TO 0 AND THEN STOP
+  static fadingStop(soundInd, duration = 1000, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
+      sounds[soundInd].howl.once('fade', () => {
+        sounds[soundInd].howl.stop();
+      });
+    } else {
+      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration, soundId).once('fade', () => {
+        sounds[soundInd].howl.stop(soundId);
+      });
+    }
+  }
+
+
+
+  /////// MUSIC STUFF
+  // WHILE SOUNDS CAN BE PLAYED TOGETHER, MUSIC IS A TYPE OF SOUND
+  // THAT CAN'T HAVE MULTIPLE BEING PLAYED TOGETHER, ONLY ONE AT A TIME
+
+  static currentMusic = -1;
+
+  static playMusic(musicInd) {
+    var curMusic = SoundPlayer.currentMusic;
+    if (musicInd == -1) return;
+    if (musicInd == curMusic) return;
+
+    if (curMusic != -1) {
+      SoundPlayer.fadingStop(curMusic, 2000);
+    }
+
+    SoundPlayer.play(musicInd);
+    SoundPlayer.currentMusic = musicInd;
+  }
+
+  static fadeMusic(musicInd, duration = 2000) {
+    if (musicInd == -1) return;
+
+    var curMusic = SoundPlayer.currentMusic;
+
+    SoundPlayer.fadingStop(musicInd, duration);
+    if (curMusic == musicInd) {
+      SoundPlayer.currentMusic = -1;
+    }
+  }
+
+  static stopMusic(musicInd) {
+    if (musicInd == -1) return;
+
+    SoundPlayer.stop(musicInd);
+    if (SoundPlayer.currentMusic == musicInd) {
+      SoundPlayer.currentMusic = -1;
     }
   }
 }
 
 
-function createSpriteComplete(imageKey, wid, hei, imgX = 1, imgY = 1, xx=0, yy =0){
-  if(!images.has(imageKey)) return console.log("CANNOT FIND IMAGE KEY IN FUNCTION: createSpriteComplete()");
-  var img = images.get(imageKey);
-  var sprite = createSprite(img);
 
-  var ww = wid || img.naturalWidth;
-  var hh = hei || img.naturalHeight;
-  sprite.setSubimg(ww, hh, imgX, imgY, xx, yy);
+Assets.addSound("TICK", "Sounds/tick.mp3", 0.4);
+Assets.addSound("TOCK", "Sounds/tock.mp3", 0.4);
+Assets.addSound("CORRECT", "Sounds/correct.wav");
+Assets.addSound("WATERDROP", "Sounds/waterDrop1.mp3");
+Assets.addSound("POP", "Sounds/Pop.mp3");
+Assets.addSound("POOF", "Sounds/poof.mp3");
+Assets.addSound("WRENCH", "Sounds/socketWrench.mp3");
+Assets.addSound("SPLASH", "Sounds/splash.mp3");
+Assets.addSound("SHOOT", "Sounds/Shoot1.wav");
+Assets.addSound("STOMP", "Sounds/stomp.mp3");
 
-  return sprite;
-}
 
-function addSpriteImgs(sprite, xx, yy, imgX, imgY){
-  sprite.addSubimgs(xx, yy, imgX, imgY);
-}
-
-function checkImages() {
-  for (var [key, image] of images) {
-    if (!image.complete) {
-      return false;
-    }
-  }
-  return true;
-}
+Assets.addSprite("PORTRAITS", "Sprites/portrait2.png", {wid:256, hei:256, cols:6, rows:6});

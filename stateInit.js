@@ -1,11 +1,13 @@
 
 
 function stateInit(dt){
-    if (input.mouseState[0][1] && checkImages()) {
-        loadSprites();
-        executingState = stateMenu;
+    if (input.mouseState[0][1]){
+        if(Assets.checkTextures()) {
+            Assets.loadSprites();
+            executingState = stateMenu;
 
-        stateMenuSetup();
+            stateMenuSetup();
+        }
     }
 
     
