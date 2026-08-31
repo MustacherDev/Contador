@@ -1,0 +1,871 @@
+
+// Temporary Dr Mario object
+
+const DRMARIOTYPE = Object.freeze(new Enum(
+    "EMPTY",
+    "VIRUS",
+    "PILL",
+    "DOUBLEPILL",
+    "TOTAL"
+));
+
+const DRMARIOCOLOR = Object.freeze(new Enum(
+    "BLUE",
+    "GREEN",
+    "RED",
+    "YELLOW",
+    "PURPLE",
+    "TOTAL"
+));
+
+const DRMARIOSTATE= Object.freeze(new Enum(
+    "PILLMOVE",
+    "CHECKSEQUENCE",
+    "WAITSEQUENCE",
+    "ERASESEQUENCE",
+    "GRAVITY",
+    "WON",
+    "LOST",
+    "TOTAL"
+));
+
+class DrMarioObj {
+    constructor(type, color, orientation = 0) {
+        this.type = type;
+        this.color = color;
+        this.orientation = orientation;
+        this.updated = false;
+        this.destroying = false;
+    }
+
+    copy(marioObj){
+        this.type = marioObj.type;
+        this.color = marioObj.color;
+        this.orientation = marioObj.orientation;
+        this.updated = marioObj.updated;
+        this.destroying = marioObj.destroying;
+    }
+}
+
+class DrMarioPlayerPill {
+    constructor(color1, color2, orientation, x, y) {
+        this.x = x;
+        this.y = y;
+        this.part1 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, color1);
+        this.part2 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, color2);
+        this.orientation = orientation;
+    }
+}
+
+class DrMarioGame {
+    constructor(wid, hei) {
+        this.wid = wid;
+        this.hei = hei;
+
+        this.grid = [];
+        for(var i = 0; i < this.hei; i++){
+            var row = [];
+            for(var j = 0; j < this.wid; j++){
+                row.push(new DrMarioObj(0, 0));
+            }
+            this.grid.push(row);
+        }
+
+        this.colorPool = [];
+
+        this.nextPill = null;
+        this.playerPill = null;
+        this.pillSpawnX = 0;
+        this.fillHeight = 0;
+
+
+        this.stepAlarm = new Alarm(4);
+
+        this.horizontalTurboAlarm = new Alarm(15);
+        this.horizontalTurboMoveCooldown = new Alarm(4);
+
+        this.horizontalTurboAlarm.pause();
+
+        this.virusFrame = 0;
+        this.virusFrameSpd = 0.08;
+
+        // this.winSprAlarm = new Alarm(50);
+        // this.winSprImg = 0;
+
+        this.sequenceWaitAlarm = new Alarm(3);
+
+        this.pillNormalSpd = 0.1;
+        this.pillFastSpd = 3;
+
+        this.hasBackground = false;
+
+        this.pillSpd = this.pillNormalSpd;
+
+        this.placingPill = false;
+
+        // 0 == PLACING PILL, 1 == CHECKING SEQUENCES, 2 == DESTROYING PILLS, 3 == FALLING PHYSICS
+        this.runState = 0;
+
+        this.gameover = false;
+
+        this.ready = false;
+
+        this.toMove = 0;
+        this.toTurn = 0;
+
+        this.downHoldImunityAlarm = new Alarm(10);
+
+
+
+        this.init(this.wid, this.hei);
+    }
+
+    getRandomColor(){
+        return this.colorPool[randInt(0, this.colorPool.length)];
+    }
+
+    createVirus(color) {
+        return new DrMarioObj(DRMARIOTYPE.VIRUS, color);
+    }
+
+    createPlayerPill(color1, color2) {
+        var newPlayerPill = new DrMarioPlayerPill(color1, color2, 0, 0, 0);
+        newPlayerPill.x = this.pillSpawnX;
+        newPlayerPill.y = 0;
+        newPlayerPill.part1 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, color1);
+        newPlayerPill.part2 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, color2);
+        return newPlayerPill;
+    }
+
+    createRandomPlayerPill() {
+        return this.createPlayerPill(this.getRandomColor(), this.getRandomColor());
+    }
+
+
+
+    init(wid, hei) {
+        this.wid = wid;
+        this.hei = hei;
+
+        this.colorPool = [DRMARIOCOLOR.BLUE, DRMARIOCOLOR.RED, DRMARIOCOLOR.GREEN, DRMARIOCOLOR.YELLOW, DRMARIOCOLOR.PURPLE];
+
+        this.pillSpawnX = Math.floor(this.wid / 2) - 1;
+
+        this.playerPill = this.createRandomPlayerPill();
+        this.setState(0);
+        this.ready = true;
+    }
+
+
+    clearJar(){
+        var cleanSpace = new DrMarioObj(0, 0);
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                this.grid[i][j].copy(cleanSpace);
+            }
+        }    
+    }
+
+    fillVirus(){
+        this.fillHeight = Math.floor(this.hei / 1.6);
+
+
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                if (chance(0.4) && i > this.fillHeight) {
+                    this.grid[i][j] = this.createVirus(this.getRandomColor());
+                }
+            }
+        }
+    }
+
+    placePlayerPill() {
+        var pill1 = this.playerPill.part1;
+        var pill2 = this.playerPill.part2;
+        var vertical = this.playerPill.orientation;
+
+        this.grid[this.playerPill.y][this.playerPill.x] = new DrMarioObj(pill1.type, pill1.color, vertical ? 1 : 0);
+        var addX = 1;
+        var addY = 0;
+        if (this.playerPill.orientation == 1) {
+            addX = 0;
+            addY = -1;
+        }
+
+        if (this.playerPill.y + addY >= 0) {
+            this.grid[this.playerPill.y + addY][this.playerPill.x + addX] = new DrMarioObj(pill2.type, pill2.color, (vertical ? 1 : 0) + 2);
+        }
+
+        this.playerPill = null;
+
+        this.setState(1);
+    }
+
+    input(leftState, rightState, down, turn){
+
+        if(leftState[1]){
+            this.inputMovePress(-1);
+          }
+          if(leftState[2]){
+            this.inputMoveRelease(-1);
+          }
+          if(leftState[0]){
+            this.inputMoveHold(-1);
+          }
+        
+          if(rightState[1]){
+            this.inputMovePress(1);
+          }
+          if(rightState[2]){
+            this.inputMoveRelease(1);
+          }
+          if(rightState[0]){
+            this.inputMoveHold(1);
+          }
+        
+          if(down){
+            this.inputDown();
+          }
+        
+          if(turn){
+            this.inputTurn(0);
+          }
+    }
+
+    inputMovePress(dir) {
+       
+
+        this.horizontalTurboAlarm.start();
+
+        if (this.runState != 0) return;
+        this.stepMove(dir);
+    }
+
+    inputMoveRelease(dir) {
+        this.horizontalTurboAlarm.stop();
+    }
+
+    inputMoveHold(dir) {
+        if (this.runState != 0) return;
+
+        if (this.horizontalTurboAlarm.finished) {
+            if (this.horizontalTurboMoveCooldown.finished) {
+                this.stepMove(dir);
+                this.horizontalTurboMoveCooldown.restart();
+            }
+        }
+    }
+
+    inputTurn() {
+        if (this.runState == 0) {
+            this.toTurn = true;
+            this.stepTurn();
+        }
+    }
+
+    inputDown() {
+        if(!this.downHoldImunityAlarm.finished) return;
+        if(this.runState != 0) return;
+
+        this.pillSpd = this.pillFastSpd;
+    }
+
+    stepMove(dir) {
+        if (dir == 0) return;
+
+        var vertical = this.playerPill.orientation;
+        var pillWid = vertical ? 1 : 2;
+
+        if(this.playerPill.x + dir < 0){
+            return;
+        }
+
+        if(this.playerPill.x + dir > this.wid - pillWid){
+            return;
+        }
+
+        if(this.checkPillCollision(this.playerPill.x + dir, this.playerPill.y, this.playerPill.orientation)){
+            SoundPlayer.play(SND.DRMARIOBUMP);
+            return;
+        }
+
+        this.playerPill.x += dir;
+
+        SoundPlayer.play(SND.DRMARIOMOVE);
+    }
+
+    stepTurn(dir) {
+        if (this.playerPill.orientation == 0) {
+
+            if (this.checkPillCollision(this.playerPill.x, this.playerPill.y, 1)) {
+                if (!this.checkPillCollision(this.playerPill.x - 1, this.playerPill.y, 1)) {
+                    this.playerPill.x--;
+                    this.playerPill.orientation = 1;
+                }
+            } else {
+                this.playerPill.orientation = 1;
+            }
+
+
+
+        } else {
+            if (this.checkPillCollision(this.playerPill.x, this.playerPill.y, 0)) {
+                if (!this.checkPillCollision(this.playerPill.x - 1, this.playerPill.y, 0)) {
+                    this.playerPill.x--;
+                    this.playerPill.orientation = 0;
+                    var temp = this.playerPill.part1;
+                    this.playerPill.part1 = this.playerPill.part2;
+                    this.playerPill.part2 = temp;
+                }
+            } else {
+                this.playerPill.orientation = 0;
+                var temp = this.playerPill.part1;
+                this.playerPill.part1 = this.playerPill.part2;
+                this.playerPill.part2 = temp;
+            }
+        }
+    }
+
+
+    checkPillCollision(x, y, ori) {
+        var oriAdd = [new Vector(1, 0), new Vector(0, -1)];
+
+        var pill1 = new Vector(x, y);
+        var pill2 = new Vector(x + oriAdd[ori].x, y + oriAdd[ori].y);
+
+        if (pill1.x < 0 || pill1.x >= this.wid) {
+            return true;
+        }
+
+
+        if (pill1.y >= this.hei) {
+            return true;
+        }
+
+        if(pill1.y != -1){
+            if (this.grid[pill1.y][pill1.x].type != DRMARIOTYPE.EMPTY) {
+                return true;
+            }
+        }
+
+
+
+        if (pill2.x < 0 || pill2.x >= this.wid) {
+            return true;
+        }
+
+
+        if (pill2.y >= this.hei) {
+            return true;
+        }
+
+        if(pill2.y != -1){
+            if (this.grid[pill2.y][pill2.x].type != DRMARIOTYPE.EMPTY) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
+
+
+    update(dt) {
+        if (!this.ready) return;
+
+        this.virusFrame += this.virusFrameSpd*dt;
+        this.virusFrame %= 2;
+
+        if(this.runState == 0){
+            this.stepAlarm.update(dt*this.pillSpd);
+        } else if (this.runState == 4){
+            this.stepAlarm.update(dt*this.pillNormalSpd*5);
+        } else {
+            this.stepAlarm.update(dt);
+        }
+
+        this.pillSpd = this.pillNormalSpd;
+
+        this.horizontalTurboAlarm.update(dt);
+        this.horizontalTurboMoveCooldown.update(dt);
+
+        // this.blinkAlarm.update(dt);
+        // this.blinkHoldAlarm.update(dt);
+
+        // if(this.blinkAlarm.finished){
+        //     this.blinkingCell = randInt(0, this.wid*this.hei);
+        //     this.blinkHoldAlarm.start();
+        //     this.blinkAlarm.stop();
+        // }
+
+        // if(this.blinkHoldAlarm.finished){
+        //     this.blinkingCell = -1;
+        //     this.blinkAlarm.start();
+        //     this.blinkHoldAlarm.stop();
+        // }
+
+        // this.winSprAlarm.update(dt);
+        // if(this.winSprAlarm.finished){
+        //     this.winSprImg ++;
+        //     this.winSprImg = this.winSprImg%2;
+
+        //     this.winSprAlarm.restart();
+        // }
+
+        this.downHoldImunityAlarm.update(dt);
+
+
+        if (this.stepAlarm.finished) {
+            this.stepAlarm.start();
+
+            
+
+            if (this.runState == 0) {
+                if (this.playerPill.y == this.hei - 1) {
+                    this.placePlayerPill();
+                } else {
+                    if(this.checkPillCollision(this.playerPill.x, this.playerPill.y+1, this.playerPill.orientation)){
+                        this.placePlayerPill();
+                    } else {
+                        this.playerPill.y++;
+                    }
+                }
+            } else if (this.runState == 1) {
+                this.sequenceMarking();
+            } else if (this.runState == 2) {
+                this.sequenceWaiting(dt);
+            } else if (this.runState == 3) {
+                this.sequenceErasing();
+            } else if (this.runState == 4) {
+                this.doFalling();
+            }
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+    sequenceMarking(){
+        var sequences = 0;
+
+        var minSeqWid = 4; 
+
+        
+
+        // HORIZONTAL SEQUENCES
+        for (var i = 0; i < this.hei; i++) {
+            var lastColor = -1;
+            var count = 0;
+            var startIndex = -1;
+            for (var j = 0; j < this.wid; j++) {
+                var type = this.grid[i][j].type;
+                var color = this.grid[i][j].color;
+
+
+
+                if (type == DRMARIOTYPE.EMPTY) {
+                    if (count >= minSeqWid) {
+                        for (var k = startIndex; k < j; k++) {
+                            this.grid[i][k].destroying = true;
+                        }
+                        sequences++;
+                    }
+
+                    count = 0;
+                    lastColor = -1;
+                    startIndex = -1;
+
+
+                    continue;
+                }
+
+                if (lastColor == -1) {
+                    lastColor = color;
+                    count = 1;
+                    startIndex = j;
+                    continue;
+                } else {
+                    if (lastColor == color) {
+                        count++;
+                    } else {
+                        if (count >= minSeqWid) {
+                            for (var k = startIndex; k < j; k++) {
+                                this.grid[i][k].destroying = true;
+                            }
+                            sequences++;
+                        }
+
+                        lastColor = color;
+                        count = 1;
+                        startIndex = j;
+
+
+                    }
+                }
+            }
+
+
+            if (count >= minSeqWid) {
+                for (var k = startIndex; k < this.wid; k++) {
+                    this.grid[i][k].destroying = true;
+                }
+                sequences++;
+            }
+        }
+
+        // VERTICAL SEQUENCES
+        for (var j = 0; j < this.wid; j++) {
+            var lastColor = -1;
+            var count = 0;
+            var startIndex = -1;
+
+            for (var i = 0; i < this.hei; i++) {
+                var type = this.grid[i][j].type;
+                var color = this.grid[i][j].color;
+
+                if (type === DRMARIOTYPE.EMPTY) {
+                    if (count >= minSeqWid) {
+                        for (var k = startIndex; k < i; k++) {
+                            this.grid[k][j].destroying = true;
+                        }
+                        sequences++;
+                    }
+
+                    count = 0;
+                    lastColor = -1;
+                    startIndex = -1;
+
+                    continue;
+                }
+
+                if (lastColor === -1) {
+                    lastColor = color;
+                    count = 1;
+                    startIndex = i;
+                    continue;
+                } else {
+                    if (lastColor === color) {
+                        count++;
+                    } else {
+                        if (count >= minSeqWid) {
+                            for (var k = startIndex; k < i; k++) {
+                                this.grid[k][j].destroying = true;
+                            }
+                            sequences++;
+                        }
+
+                        lastColor = color;
+                        count = 1;
+                        startIndex = i;
+                    }
+                }
+            }
+
+            if (count >= minSeqWid) {
+                for (var k = startIndex; k < this.hei; k++) {
+                    this.grid[k][j].destroying = true;
+                }
+                sequences++;
+            }
+        }
+
+        // CHECKS IF ANY OF THE DESTROYED TILES IS A VIRUS
+        var virusSequence = false;
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                if(!this.grid[i][j].destroying) continue;
+                if(this.grid[i][j].type != DRMARIOTYPE.VIRUS) continue;
+
+                virusSequence = true;
+                i = this.hei;
+                j = this.wid;
+                break;
+            }
+        }
+
+
+        //console.log("Sequence Marking ", sequences, virusSequence);
+        
+        if (sequences == 0) {
+            this.setState(0);
+        } else {
+            this.setState(2);
+
+            if(virusSequence){
+                SoundPlayer.play(SND.DRMARIOCLEARVIRUS);
+            } else {
+                SoundPlayer.play(SND.DRMARIOCLEARPILL);
+            }
+        }
+    }
+
+    setState(state){
+        this.runState = state;
+        if(state == 0){
+            this.downHoldImunityAlarm.restart();
+            this.playerPill = this.createRandomPlayerPill();
+
+            if(this.grid[this.playerPill.y][this.playerPill.x].type != DRMARIOTYPE.EMPTY){
+                this.setState(6);
+            } else if(this.grid[this.playerPill.y][this.playerPill.x+1].type != DRMARIOTYPE.EMPTY){
+                this.setState(6);
+            }
+        }
+    }
+
+    sequenceWaiting(dt){
+        this.sequenceWaitAlarm.update(dt);
+
+        if(this.sequenceWaitAlarm.finished){
+            this.setState(3);
+            this.sequenceWaitAlarm.restart();
+        }
+    }
+
+    sequenceErasing(){
+
+       
+
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                if (this.grid[i][j].destroying) {
+                    this.grid[i][j] = new DrMarioObj(0, 0);
+                }
+            }
+        }
+
+        var or2Vec = [new Vector(1, 0), new Vector(0, -1), new Vector(-1, 0), new Vector(0, 1)];
+
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                if (this.grid[i][j].type == DRMARIOTYPE.DOUBLEPILL) {
+                    var vec = or2Vec[this.grid[i][j].orientation];
+
+                    if (this.grid[i + vec.y][j + vec.x].type == DRMARIOTYPE.EMPTY) {
+                        this.grid[i][j].type = DRMARIOTYPE.PILL;
+                        this.grid[i][j].orientation = 0;
+                    }
+                }
+            }
+        }
+
+
+        
+        var virusCount = this.countVirus();
+        //console.log("Erasing Sequence " + virusCount + " Viruses Counted");
+        if(virusCount == 0){
+            this.setState(5);
+        } else {
+            this.setState(4);
+        }
+    }
+
+    doFalling(){
+        // CHECKING BOTTOM FIRST
+        // FALLING SAND PHYSICS
+        var moved = false;
+        for (var i = this.hei - 2; i > 0; i--) {
+            for (var j = 0; j < this.wid; j++) {
+                var type = this.grid[i][j].type;
+                if (type == DRMARIOTYPE.EMPTY || type == DRMARIOTYPE.VIRUS) continue;
+                if (type == DRMARIOTYPE.PILL) {
+                    if (this.grid[i + 1][j].type == DRMARIOTYPE.EMPTY) {
+                        this.grid[i + 1][j] = this.grid[i][j];
+                        this.grid[i][j] = new DrMarioObj(DRMARIOTYPE.EMPTY, 0);
+                    }
+                }
+                if(type == DRMARIOTYPE.DOUBLEPILL){
+                    var orientation = this.grid[i][j].orientation;
+                    if(orientation == 0){
+                        if(this.grid[i][j+1].type == DRMARIOTYPE.DOUBLEPILL){
+                            if (this.grid[i + 1][j].type == DRMARIOTYPE.EMPTY) {
+                                if (this.grid[i + 1][j+1].type == DRMARIOTYPE.EMPTY) {
+
+                                    var pillHead = new DrMarioObj(0,0);
+                                    pillHead.copy(this.grid[i][j]);
+                                    var pillTail = new DrMarioObj(0,0);
+                                    pillTail.copy(this.grid[i][j+1]);
+
+                                    this.grid[i + 1][j] = pillHead;
+                                    this.grid[i + 1][j+1] = pillTail;
+                                    this.grid[i][j] = new DrMarioObj(DRMARIOTYPE.EMPTY, 0);
+                                    this.grid[i][j+1] = new DrMarioObj(DRMARIOTYPE.EMPTY, 0);
+                                }
+                            }
+                        }
+                    } else if(orientation == 1){
+                        if(this.grid[i-1][j].type == DRMARIOTYPE.DOUBLEPILL){
+                            if (this.grid[i + 1][j].type == DRMARIOTYPE.EMPTY) {
+
+                                var pillHead = new DrMarioObj(0,0);
+                                pillHead.copy(this.grid[i][j]);
+                                var pillTail = new DrMarioObj(0,0);
+                                pillTail.copy(this.grid[i-1][j]);
+
+                                this.grid[i+1][j] = pillHead;
+                                this.grid[i][j] = pillTail;
+                                this.grid[i-1][j] = new DrMarioObj(DRMARIOTYPE.EMPTY, 0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // CHECK IF NEXT STEP WILL HAVE PILL FALLING UPDATES
+        for (var i = this.hei - 2; i > 0; i--) {
+            for (var j = 0; j < this.wid; j++) {
+                var type = this.grid[i][j].type;
+                if (type == DRMARIOTYPE.EMPTY || type == DRMARIOTYPE.VIRUS) continue;
+                if (type == DRMARIOTYPE.PILL) {
+                    if (this.grid[i + 1][j].type == DRMARIOTYPE.EMPTY) {
+                        moved = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!moved) this.setState(1);
+    }
+
+
+    countVirus(){
+        var count = 0;
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                var obj = this.grid[i][j];
+                if(obj.type == DRMARIOTYPE.VIRUS){
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+
+    
+
+    draw(xx, yy, ww, hh) {
+        var x = xx;
+        var y = yy;
+        var w = ww / this.wid;
+        var h = hh / this.hei;
+        var scl = w / sprites[SPR.DRMARIOSHEET].width;
+
+        if(this.hasBackground){
+            ctx.fillStyle = "rgb(0,0,0)";
+            ctx.fillRect(x, y, ww, hh);
+        }
+
+        var paleteWid = 6;
+
+        for (var i = 0; i < this.hei; i++) {
+            for (var j = 0; j < this.wid; j++) {
+                var obj = this.grid[i][j];
+
+                var type = obj.type;
+
+                // if(obj.type == DRMARIOTYPE.VIRUS){
+                //     if(obj.destroying){
+                //         type = 3;
+                //     } else {
+                //         if(chance(0.05)){
+                //             type = 2;
+                //         }
+                //     }
+                // } else {
+                //     type = obj.type + 2;
+                // }
+
+                var color = obj.color;
+                var angle = 0;
+                var extraImg = 0;
+
+                if (type == DRMARIOTYPE.DOUBLEPILL) {
+                    var or = obj.orientation % 2;
+                    angle = -(Math.PI / 2) * or;
+
+                    if (obj.orientation >= 2) {
+                        extraImg = 1;
+                    }
+                }
+
+                var imgType = 1;
+                if(obj.type == DRMARIOTYPE.VIRUS){
+
+
+                    if(this.blinkingCell == i*this.wid + j || this.virusFrame >= 1){
+                        imgType = 2;
+                    }  
+                } else {
+                    imgType = obj.type + 2;
+                }
+
+                if(obj.destroying){
+                    imgType = 3;
+                    extraImg = 0;
+                } 
+
+                if (obj.type != 0) {
+                    //console.log("Start Drawing a "+ DRMARIOCOLOR.getName(color) + " " + DRMARIOTYPE.getName(imgType));
+                    sprites[SPR.DRMARIOSHEET].drawExt(x + w * j + 4 * scl, y + h * i + 4 * scl, (imgType + extraImg - 1) + color * paleteWid, scl, scl, angle, 4, 4);
+                    //console.log("Finished Drawing");
+                    //console.log("");
+                }
+            }
+        }
+
+        if(this.playerPill){
+            var px = this.playerPill.x;
+            var py = this.playerPill.y;
+            var pill1 = this.playerPill.part1;
+            var pill2 = this.playerPill.part2;
+
+            var vertical = this.playerPill.orientation;
+
+            var type = pill1.type + 2;
+            var color = pill1.color;
+
+            var angle = -(Math.PI / 2) * vertical;
+
+
+            if (type != DRMARIOTYPE.EMPTY) {
+                //console.log("Start Drawing a "+ DRMARIOCOLOR.getName(color) + " " + DRMARIOTYPE.getName(pill1.type));
+                sprites[SPR.DRMARIOSHEET].drawExt(x + w * px + 4 * scl, y + h * py + 4 * scl, (type - 1) + color * paleteWid, scl, scl, angle, 4, 4);
+                // console.log("Finished Drawing");
+                // console.log("");
+            }
+
+            type = pill2.type + 2;
+            color = pill2.color;
+
+            var addPos = new Vector(1, 0);
+            if (vertical) {
+                addPos = new Vector(0, -1);
+            }
+
+            angle = -(Math.PI / 2) * vertical;
+            if (type != DRMARIOTYPE.EMPTY) {
+                //console.log("Start Drawing a "+ DRMARIOCOLOR.getName(color) + " " + DRMARIOTYPE.getName(pill2.type));
+                sprites[SPR.DRMARIOSHEET].drawExt(x + w * (px + addPos.x) + 4 * scl, y + h * (py + addPos.y) + 4 * scl, (type) + color * paleteWid, scl, scl, angle, 4, 4);
+                //console.log("Finished Drawing");
+                //console.log("");
+            }
+        }
+
+
+        // if(this.runState == 5){
+        //     var sprWid = sprites[SPR.DRWIN].width;
+        //     sprites[SPR.DRWIN].drawExtRelative(xx + ww/2, yy + hh/2, this.winSprImg,  ww/sprWid, ww/sprWid, 0, 0.5,0.5);
+        // }
+    }
+}

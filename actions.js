@@ -128,6 +128,17 @@ class FlipSlotAction extends Action{
     }
 }
 
+class CodeAction extends Action{
+    constructor(method){
+        super();
+        this.method = method;
+    }
+
+    start(){
+        this.method();
+    }
+}
+
 
 class WaitAction extends Action{
     constructor(duration){

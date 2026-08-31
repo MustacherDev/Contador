@@ -228,9 +228,13 @@ Assets.addSound("WRENCH", "Sounds/socketWrench.mp3");
 Assets.addSound("SPLASH", "Sounds/splash.mp3");
 Assets.addSound("SHOOT", "Sounds/Shoot1.wav");
 Assets.addSound("STOMP", "Sounds/stomp.mp3");
-Assets.addSound("EXPLOSION", "Sounds/explosion.wav", 0.3);
-
+Assets.addSound("EXPLOSION", "Sounds/explosion.wav", 0.25);
+Assets.addSound("DRMARIOBUMP", "Sounds/DrMario/drBump.wav");
+Assets.addSound("DRMARIOMOVE", "Sounds/DrMario/drMove.wav");
+Assets.addSound("DRMARIOCLEARVIRUS", "Sounds/DrMario/drClearVirus.wav");
+Assets.addSound("DRMARIOCLEARPILL", "Sounds/DrMario/drClearPill.wav");
 
 Assets.addSprite("PORTRAITS", "Sprites/portrait2.png", {wid:256, hei:256, cols:6, rows:6});
 Assets.addSprite("PEACHKART", "Sprites/peachKart.png", {wid:32, hei:32, cols:12, rows:2});
 Assets.addSprite("EXPLOSION", "Sprites/explosion.png", {wid:71, hei:100, cols:6, rows:3});
+Assets.addSprite("DRMARIOSHEET", "Sprites/DrMarioSheet2.png", {wid:8, hei:8, cols:6, rows:5});

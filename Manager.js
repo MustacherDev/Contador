@@ -46,6 +46,8 @@ class GameManager{
         this.calendarDashboard = new CalendarDashboard();
         this.fameHall = new FameHall(canvasWidth*1.5, canvasHeight*0.5);
 
+        this.pillGame = new DrMarioGame(8, 16);
+        this.pillGame.fillVirus();
 
         this.mainCam = mainCam;
 
@@ -71,9 +73,17 @@ class GameManager{
             // new BeatPattern(8, 64, [23]),
         ];
 
+
         var peachFacing = chance(0.5) ? 1 : -1;
         var peachKart = new PeachKart(canvasWidth*0.5 - canvasWidth*peachFacing*1.1, canvasHeight - 100, peachFacing, randInt(0, 3));
-        this.addObject(peachKart);
+
+        var pillDemo = new PillDemo(canvasWidth*0.5 + randRange(-canvasWidth*0.2, canvasWidth*0.2), 0, 0);
+
+        if(chance(0.5)){
+            this.addObject(pillDemo);
+        } else {
+            this.addObject(peachKart);
+        }
 
 
     }
@@ -98,6 +108,13 @@ class GameManager{
 
         this.beatMachine.update(dt);
         this.camMoveAlarm.update(dt);
+
+
+
+        if(this.camSlotX == -1 && !this.camMoving){
+            this.pillGame.update(dt);
+            this.pillGame.input(input.keyState[KeyCodes.KeyA], input.keyState[KeyCodes.KeyD], input.keyState[KeyCodes.KeyS][0], input.keyState[KeyCodes.KeyW][1]);
+        }
         this.fameHall.update(dt);
 
         if(this.camMoveAlarm.finished){
@@ -163,6 +180,9 @@ class GameManager{
         }
 
         this.fameHall.draw(ctx);
+        var pillsWid = canvasWidth*0.2;
+        var pillsHei = pillsWid*(this.pillGame.hei/this.pillGame.wid);
+        this.pillGame.draw(canvasWidth*0.5 - canvasWidth - pillsWid*0.5, canvasHeight*0.5 - pillsHei*0.5, pillsWid, pillsHei);
     }
 
     drawRequests(ctx) {
