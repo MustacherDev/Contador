@@ -37,6 +37,19 @@ class BeatPattern {
 
 
 
+class FunRoom {
+    constructor(xSlot){
+        this.slot = xSlot;
+        this.visible = false;
+        this.active = false;
+
+        this.objects = [];
+    }
+
+    update(dt){
+        
+    }
+}
 
 
 class GameManager{
@@ -45,9 +58,15 @@ class GameManager{
         this.objects = [];
         this.calendarDashboard = new CalendarDashboard();
         this.fameHall = new FameHall(canvasWidth*1.5, canvasHeight*0.5);
+        this.goatInterface = new MagicGoatInterface(canvasWidth*2.5, canvasHeight*0.5);
+        this.goatInterface.setText("");
+        this.plantForest = new PlantInstance(canvasWidth*3.5, canvasHeight, Math.PI);
 
         this.pillGame = new DrMarioGame(8, 16);
         this.pillGame.fillVirus();
+
+        this.faviconAnimation = new FaviconAnimation();
+        if (location.protocol === "file:") this.faviconAnimation.active = false;
 
         this.mainCam = mainCam;
 
@@ -65,13 +84,18 @@ class GameManager{
         this.beatMachine.beatTrigger = (beat) => {
             this.beatTrigger(beat);
         }
-        this.beatPatterns = [
+
+        var clockBeat = [
             new BeatPattern(8, 16, [0]),
             new BeatPattern(8, 16, [8]),
             // new BeatPattern(8, 64, [2, 4, 36]),
             // new BeatPattern(8, 64, [16, 40, 44, 48]),
             // new BeatPattern(8, 64, [23]),
         ];
+        var noBeat = [];
+
+        this.beatStyles = [noBeat, clockBeat];
+        this.beatStyleIndex = 1;
 
 
         var peachFacing = chance(0.5) ? 1 : -1;
@@ -88,10 +112,14 @@ class GameManager{
 
     }
 
+    finishIntro(){
+        this.beatStyleIndex = 0;
+    }
+
     beatTrigger(beat){
         var soundList = [SND.TICK, SND.TOCK, SND.WATERDROP, SND.POP, SND.WRENCH];
-        for(var i = 0; i < this.beatPatterns.length; i++){
-            if(this.beatPatterns[i].checkBeat(beat)) SoundPlayer.play(soundList[i]);
+        for(var i = 0; i < this.beatStyles[this.beatStyleIndex].length; i++){
+            if(this.beatStyles[this.beatStyleIndex][i].checkBeat(beat)) SoundPlayer.play(soundList[i]);
         }
     }
     
@@ -105,16 +133,31 @@ class GameManager{
             this.objects[i].update(dt);
         }
 
+        this.faviconAnimation.update(dt);
+
 
         this.beatMachine.update(dt);
         this.camMoveAlarm.update(dt);
 
-
-
-        if(this.camSlotX == -1 && !this.camMoving){
-            this.pillGame.update(dt);
-            this.pillGame.input(input.keyState[KeyCodes.KeyA], input.keyState[KeyCodes.KeyD], input.keyState[KeyCodes.KeyS][0], input.keyState[KeyCodes.KeyW][1]);
+        if(this.camSlotX == 3 || (this.camSlotXPrev == 3 && this.camMoving)){
+            this.plantForest.update(dt);
         }
+
+        
+        this.goatInterface.active = false;
+
+        if(!this.camMoving){
+            if(this.camSlotX == -1){
+                this.pillGame.update(dt);
+                this.pillGame.input(input.keyState[KeyCodes.KeyA], input.keyState[KeyCodes.KeyD], input.keyState[KeyCodes.KeyS][0], input.keyState[KeyCodes.KeyW][1]);
+            } else if (this.camSlotX == 2) {
+                this.goatInterface.active = true;
+            } 
+        }
+
+        this.goatInterface.update(dt);
+
+
         this.fameHall.update(dt);
 
         if(this.camMoveAlarm.finished){
@@ -183,6 +226,7 @@ class GameManager{
         var pillsWid = canvasWidth*0.2;
         var pillsHei = pillsWid*(this.pillGame.hei/this.pillGame.wid);
         this.pillGame.draw(canvasWidth*0.5 - canvasWidth - pillsWid*0.5, canvasHeight*0.5 - pillsHei*0.5, pillsWid, pillsHei);
+        this.goatInterface.draw(ctx);
     }
 
     drawRequests(ctx) {

@@ -159,6 +159,8 @@ class StateMachine{
     this.autoProgress = false;
     this.canProgress  = false;
     this.finished = false;
+
+    this.onStateChange = null;
     
     for(var duration of stateDurationList){
       this.stateList.push(new Alarm(duration));
@@ -175,6 +177,7 @@ class StateMachine{
     this.canProgress = false;
     if(this.state < this.stateList.length-1){
       this.state++;
+      this.onStateChange?.(this.state);
     } else {
       this.finished = true;
     }

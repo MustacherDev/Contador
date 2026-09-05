@@ -113,8 +113,16 @@ class CalendarDashboard {
 
         this.done = false;
 
-        this.introAlarm = new Alarm(400);
-        this.startAlarm = new Alarm(200);
+        // this.introAlarm = new Alarm(400);
+        // this.preStartAlarm = new Alarm(50);
+        // this.startAlarm = new Alarm(200);
+
+        this.stateMachine = new StateMachine([400, 50, 200]);
+        this.stateMachine.autoProgress = true;
+        this.stateMachine.onStateChange = (state) => {
+            this.onStateChange(state);
+        }
+
         this.state = 0;
         this.progress = 0;
 
@@ -265,18 +273,33 @@ class CalendarDashboard {
         return weekday;
     }
 
+    onStateChange(state){
+        if(state == 1){
+            this.finishedIntro = true;
+            manager.finishIntro();
+        }
+    }
+
     update(dt) {
 
         
-        if(this.finishedIntro){
-            this.startAlarm.update(dt);
-            this.progress = this.startAlarm.percentage();
-        } else {
-            this.introAlarm.update(dt);
-            if(this.introAlarm.finished){
-                this.finishedIntro = true;
-            }
-        }
+        // if(this.finishedIntro){
+        //     this.preStartAlarm.update(dt);
+        //     this.startAlarm.update(dt);
+            
+        //     this.progress = this.startAlarm.percentage();
+            
+        // } else {
+        //     this.introAlarm.update(dt);
+        //     if(this.introAlarm.finished){
+        //         this.finishedIntro = true;
+        //         manager.finishIntro();
+        //     }
+        // }
+
+        this.stateMachine.update(dt);
+
+
 
 
 
@@ -329,7 +352,7 @@ class CalendarDashboard {
 
         if(!this.isCountdownMode()){
 
-            var xDisplace = -tweenInOut(1-this.progress)*600;
+            var xDisplace = -tweenInOut(1-this.stateMachine.getProgress(2))*600;
 
             ctx.font = "32px Fixedsys";
             ctx.textAlign = "left";
@@ -360,19 +383,20 @@ class CalendarDashboard {
         } else {
 
             var messageY = -60;
-            ctx.font = Math.floor(100 - (1-tweenOut(this.progress))*100) + "px Fixedsys";
+            var prog = this.stateMachine.getProgress(2);
+            ctx.font = Math.floor(100 - (1-tweenOut(prog))*100) + "px Fixedsys";
             ctx.fillStyle = "rgb(255,255,0)";
             ctx.fillText(this.message, 0, messageY);
 
             
             if(this.messageSubtext){
-                ctx.font = Math.floor(60 - (1-tweenOut(this.progress))*60) + "px Fixedsys";
+                ctx.font = Math.floor(60 - (1-tweenOut(prog))*60) + "px Fixedsys";
                 ctx.fillStyle = "rgb(255,255,0)";
                 ctx.fillText(this.messageSubtext, 0, messageY + 80);
             }
 
 
-            var yDisplace = tweenInOut(1-this.progress)*400;
+            var yDisplace = tweenInOut(1-prog)*400;
             ctx.font = "60px Fixedsys";
             var daysLeftY = 180 + yDisplace;
             ctx.fillStyle = "rgb(255,255,255)";
@@ -412,7 +436,7 @@ class CalendarDashboard {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        var introProg = this.introAlarm.percentage();
+        var introProg = this.stateMachine.getProgress(0);
 
         var alpha = Math.min(zigzag(introProg)*3, 1);
         alpha = tweenOut(alpha);

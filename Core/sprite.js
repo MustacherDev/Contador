@@ -121,6 +121,7 @@ class Sprite {
 
   configure(){
     if(this.width == -1 || this.height == -1){
+      console.log(this.texture, this.texture.image.naturalWidth);
       this.width = this.texture.image.naturalWidth;
       this.height = this.texture.image.naturalHeight;
 
@@ -215,7 +216,7 @@ class SpriteInstance {
     this.transform.ang = ang;
   }
 
-  setScale(xScl, yScl){
+  setScale(xScl, yScl = xScl){
     this.transform.xScl = xScl;
     this.transform.yScl = yScl;
   }

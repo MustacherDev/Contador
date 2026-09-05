@@ -71,14 +71,14 @@ class Assets{
   static loadSprites(){
     if (this.spritesLoaded) return;
 
+    SPR.addEntry("TOTAL");
+    SND.addEntry("TOTAL");
+
     for (var i = 0; i < SPR.TOTAL; i++) {
       sprites[i].configure();
     }
 
     this.spritesLoaded = true;
-
-    SPR.addEntry("TOTAL");
-    SND.addEntry("TOTAL");
   }
   
   
@@ -238,3 +238,7 @@ Assets.addSprite("PORTRAITS", "Sprites/portrait2.png", {wid:256, hei:256, cols:6
 Assets.addSprite("PEACHKART", "Sprites/peachKart.png", {wid:32, hei:32, cols:12, rows:2});
 Assets.addSprite("EXPLOSION", "Sprites/explosion.png", {wid:71, hei:100, cols:6, rows:3});
 Assets.addSprite("DRMARIOSHEET", "Sprites/DrMarioSheet2.png", {wid:8, hei:8, cols:6, rows:5});
+Assets.addSprite("GOAT", "Sprites/bode.png");
+Assets.addSprite("PLANTS", "Sprites/plants.png", {wid:16, hei:16, cols:5, rows:1});
+Assets.addSprite("BUTTONS", "Sprites/buttons.png", {wid:20, hei:20, cols:1, rows:3});
+Assets.addSprite("CLOCK", "Sprites/clockSheet.png", {wid:16, hei:16, cols:8, rows:1});
