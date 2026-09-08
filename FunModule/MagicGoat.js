@@ -1,9 +1,8 @@
 
 
-class MagicGoatInterface{
+class MagicGoatInterface extends BaseObject{
     constructor(x, y){
-        this.x = x;
-        this.y = y;
+        super(x, y);
 
         this.active = false;
         this.visible = true;
@@ -11,6 +10,10 @@ class MagicGoatInterface{
         this.goatSprite = new SpriteInstance(sprites[SPR.GOAT], x, y);
         this.goatSprite.setScale(0.5, 0.5);
         this.goatSprite.setOrigin(0.5, 1);
+
+        this.dramaSprite = new SpriteInstance(sprites[SPR.KNOWLEDGE], x, y);
+        this.dramaSprite.setOrigin(0.5, 0.5);
+        this.dramaSprite.setAlpha(0);
 
         this.textBoxSize = canvasWidth*0.4;
 
@@ -26,6 +29,18 @@ class MagicGoatInterface{
         this.answerText = "";
         this.answerAlarm = new Alarm(200);
 
+        this.passwords = ["SENHA", "MAIONESE", "HELICOPTERO", "ONOMATOPEIA", "ENCRENCA", "ESMERALDA", "CEREJEIRA", "ABECEDARIO", "JUVENTUDE"];
+        this.password = "SENHA";
+
+        this.dramatic = false;
+        this.dramaStateMachine = new StateMachine([720, 680, 50]);
+        this.dramaStateMachine.autoProgress = true;
+        this.dramaStateMachine.stop();
+        this.dramaStateMachine.onStateChange = (state) => {
+            this.dramaStateChange(state);
+        };
+
+
 
 
         this.keyboard = new MagicKeyboard(this.x, this.y + 60, this.textBoxSize*1.5, this);
@@ -37,6 +52,7 @@ class MagicGoatInterface{
 
     keyClick(index){
         if(this.answering) return;
+        if(this.dramatic) return;
 
         if(index >= 0 && index < 26){
             this.textBox.addChar(String.fromCharCode(65 + index));
@@ -82,6 +98,9 @@ class MagicGoatInterface{
         var myAnswers = ["SIM", "NAO", "TALVEZ", "YES", "NO", "MAYBE"];
         var questionWords = ["QUEM", "ONDE", "QUANDO", "PORQUE", "COMO", "QUAL", "QUAIS", "QUE"];
 
+
+        var gotPasswordRight = false;
+
         var answer = "";
         if(words.length == 1 && words[0] == "" && !isQuestion){
             answer = choose(noText);
@@ -90,7 +109,10 @@ class MagicGoatInterface{
         } else if(words.length > 0 && !isQuestion){
 
             if(words.length == 1){
-                if(myAnswers.includes(words[0])){
+                if(words[0] == this.password){
+                    answer = "..." + this.password + "!";
+                    gotPasswordRight = true;
+                } else if(myAnswers.includes(words[0])){
                     answer = choose(askedSome);
                 } else {
                     answer = choose(noQuestion);
@@ -122,8 +144,43 @@ class MagicGoatInterface{
 
         this.answerText = answer;
         console.log("ANSWER: " + this.answerText);
+
         this.answering = true;
         this.answerAlarm.restart();
+
+        if(gotPasswordRight){
+            console.log("STARTING DRAMA MACHINE");
+            this.dramaStateMachine.start();
+        }
+    }
+
+
+
+    dramaStateChange(state){
+        switch(state){
+            case 0:
+                this.dramatic = true;
+                SoundPlayer.play(SND.MUSICDRAMA);
+                SoundPlayer.fadeIn(SND.MUSICDRAMA, 5000);
+                manager.setRoomViewerLock(true);
+                break;
+            case 2:
+                SoundPlayer.stop(SND.MUSICDRAMA);
+                break;
+            case 3:
+                this.dramatic = false;
+                manager.setRoomViewerLock(false);
+                manager.mainCam.scale = 1;
+                this.dramaStateMachine.stop();
+
+                console.log("DRAMA STATE CHANGED TO 3");
+                SoundPlayer.play(SND.CORRECT);
+                manager.finishGame();
+                this.answerAlarm.restart();
+                this.answering = true;
+                this.answerText = "CERTA RESPOSTA";
+                break;
+        }
     }
 
     
@@ -137,10 +194,14 @@ class MagicGoatInterface{
 
     update(dt){
         this.goatSprite.setPosition(this.x, this.y);
-        manager.addDrawRequest(new DrawRequest(this.goatSprite, 0));
+        this.dramaSprite.setPosition(this.x, this.y-100);
+
+        
+   
         
 
         if(this.active){
+            this.dramaStateMachine.update(dt);
 
             this.answerAlarm.update(dt);
 
@@ -149,26 +210,41 @@ class MagicGoatInterface{
                 this.answerText = "";
             }
 
-            //if(!this.answering){
-                for(var i = KeyCodes.KeyA; i < KeyCodes.KeyA+26; i++){
-                    if(input.keyState[i][1]){
-                        this.keyClick(i - KeyCodes.KeyA);
-                    }
-                }
+            if(!this.dramaStateMachine.paused){
+                var dramaProg = ((this.dramaStateMachine.getProgress(0)*0.3 + this.dramaStateMachine.getProgress(1)*1.2)  - this.dramaStateMachine.getProgress(2)*1.5)/1.5;
+                
+                this.dramaSprite.setFrame(Math.floor(dramaProg*dramaProg*51.37)%15);
 
-                if(input.keyState[KeyCodes.Enter][1]){
-                    this.keyClick(29);
+                if(this.dramaStateMachine.state == 1){
+                    this.dramaSprite.setAlpha(Math.max(dramaProg - 0.2, 0));
+                } else {
+                    this.dramaSprite.setAlpha(0);
                 }
-                if(input.keyState[KeyCodes.Backspace][1]){
-                    this.keyClick(28);
+                
+                manager.mainCam.scale = 1 + 1.5*dramaProg;
+                manager.roomViewer.camRoomYOff = -80 * dramaProg;
+            }
+
+        
+            for(var i = KeyCodes.KeyA; i < KeyCodes.KeyA+26; i++){
+                if(input.keyState[i][1]){
+                    this.keyClick(i - KeyCodes.KeyA);
                 }
-                if(input.keyState[KeyCodes.Space][1]){
-                    this.keyClick(27);
-                }
-                if(input.keyState[KeyCodes.Slash][1] && input.keyState[KeyCodes.Shift][0]){
-                    this.keyClick(26);
-                }
-            //}
+            }
+
+            if(input.keyState[KeyCodes.Enter][1]){
+                this.keyClick(29);
+            }
+            if(input.keyState[KeyCodes.Backspace][1]){
+                this.keyClick(28);
+            }
+            if(input.keyState[KeyCodes.Space][1]){
+                this.keyClick(27);
+            }
+            if(input.keyState[KeyCodes.Slash][1] && input.keyState[KeyCodes.Shift][0]){
+                this.keyClick(26);
+            }
+            
             this.textBox.setEditable(!this.answering);
 
             this.stateFlow.update(dt);
@@ -178,8 +254,15 @@ class MagicGoatInterface{
         }
     }
 
-    draw(ctx){
+    pushDraw(){
+        if(!this.visible) return;
+        manager.addDrawRequest(new DrawRequest(this.dramaSprite, 10));
+        manager.addDrawObject(this);
+        manager.addDrawRequest(new DrawRequest(this.goatSprite, 0));
+    }
 
+    draw(ctx){
+        if(!this.visible) return;
         if(this.answering){
             var progress = this.answerAlarm.percentage();
             var alpha = Math.min(zigzag(progress)*10, 1);
@@ -191,6 +274,8 @@ class MagicGoatInterface{
 
             ctx.fillText(this.answerText, this.x + progress*50, this.y - 200);
         }
+
+        
 
         this.textBox.draw(ctx);
         this.keyboard.draw(ctx);

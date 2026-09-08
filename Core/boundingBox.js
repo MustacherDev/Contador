@@ -44,17 +44,14 @@ class BoundingBox {
 
   
     checkCollision(otherBB) {
-      if (this.x - this.xOffset < otherBB.x - otherBB.xOffset + otherBB.width &&
-        this.x - this.xOffset + this.width > otherBB.x - otherBB.xOffset &&
-        this.y - this.yOffset < otherBB.y - otherBB.yOffset + otherBB.height &&
-        this.y - this.yOffset + this.height > otherBB.y - otherBB.yOffset) {
-        return true;
-      }
-      return false;
+      return Area.rectCollision(
+        this.getLeft(), this.getTop(), this.width, this.height,
+        otherBB.getLeft(), otherBB.getTop(), otherBB.width, otherBB.height
+      );
     }
   
     isPointInside(x, y) {
-      return pointInRect(x, y, this.x - this.xOffset, this.y - this.yOffset, this.x - this.xOffset + this.width, this.y - this.yOffset + this.height);
+      return Area.pointInside(x, y, this.x - this.xOffset, this.y - this.yOffset, this.width, this.height);
     }
   
     updatePos(x, y) {

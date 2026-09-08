@@ -202,6 +202,14 @@ class SpriteInstance {
     }
   }
 
+  getWidth(){
+    return this.sprite.width;
+  }
+
+  getHeight(){
+    return this.sprite.height;
+  }
+
   // TRANSFORM METHODS
   setPosition(x, y){
     this.transform.x = x;

@@ -507,10 +507,9 @@ class PlantOptions{
 
 
 
-class PlantInstance{
+class PlantInstance extends BaseObject{
     constructor(x, y, ang){
-        this.x = x;
-        this.y = y;
+        super(x, y);
         this.ang = ang;
 
         this.options = new PlantOptions();
@@ -554,9 +553,6 @@ class PlantInstance{
             }
             this.inactiveParts = 0;
         }
-
-        this.pushDrawList();
-
     }
 
     shaveLeaves(){
@@ -579,7 +575,7 @@ class PlantInstance{
         this.creatingBranch = 0;
     }
 
-    pushDrawList(){
+    pushDraw(){
         this.drawRequests = [];
         for(var i = 0 ; i < this.parts.length; i++){
             var part = this.parts[i];

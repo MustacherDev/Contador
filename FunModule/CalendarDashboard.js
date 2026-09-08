@@ -1,136 +1,22 @@
-class BdayCounter{
-    constructor(){
-        this.targetDate = new Date("2025-12-06T18:00:00");
-        this.done = false;
 
-        this.days = 0;
-        this.hours = 0;
-        this.minutes = 0;
-        this.seconds = 0;
-
-        this.x = 0;
-        this.y = 0;
-
+class CalendarDashboard extends BaseObject {
+    constructor(introDuration = 400) {
+        super(canvasWidth / 2, canvasHeight / 2);
         
-        this.letterIndex = 0;
-        this.letterOrder = [0, 4, 6, 2, 7, 3, 1, 5];
-        //this.letterTime  = [240, 120, 60, 30, 15, 7.5, 3.75, 1.625];
-        this.letterTime  = [10, 8, 6, 4, 3, 2, 1, 0.5];
-        this.message = "BEETROOT";
-        // for(var i = 0 ; i < this.message.length; i++){
-        //     var letterInfo = [];
-        //     letterInfo.push(false);
-        //     letterInfo.push(0);
-        //     this.letters.push(letterInfo);
-        // }
-        
-    }
+        this.birthdays = [
+            {name: "H   ", day: 25, month:1, remaining: 0, remainText: ""}, 
+            {name: "E   ", day: 6, month:5, remaining: 0, remainText: ""}, 
+            {name: "R(o)", day: 7, month:8, remaining: 0, remainText: ""}, 
+            {name: "R(a)", day: 6, month:12, remaining: 0, remainText: ""}
+        ];
 
-    update(dt){
-        const now = new Date();
-        const diff = this.targetDate - now; // difference in milliseconds
-
-        if (diff <= 0) {
-            this.done = true;
-            return;
-        }
-
-        this.days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        this.hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        this.minutes = Math.floor((diff / (1000 * 60)) % 60);
-        this.seconds = Math.floor((diff / 1000) % 60);
-
-        var remainingHours = diff / (1000 * 60 * 60);
-
-        for(var i = this.letterIndex ; i < this.letterTime.length; i++){
-            if(this.letterTime[i] > remainingHours){
-                this.letterIndex++;
-                continue;
-            }
-            break;
-        }
-
-        if(this.days == 0 && this.hours < 1){
-            this.x = randRange(-3, 3);
-            this.y = randRange(-3, 3);
-        }
-
-        manager.addDrawObject(this);
-    }
-
-
-    draw(ctx){
-        ctx.font = "120px Fixedsys";
-        ctx.fillStyle = "rgb(255,255,255)";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        
-
-        if(this.done){
-            ctx.fillText("FELIZ ANIVERSÁRIO!", 0, 0);
-        } else {
-            const dd = String(this.days).padStart(2, "0");
-            const hh = String(this.hours).padStart(2, "0");
-            const mm = String(this.minutes).padStart(2, "0");
-            const ss = String(this.seconds).padStart(2, "0");
-            ctx.fillText(`${dd}:${hh}:${mm}:${ss}`, this.x, this.y);
-        }
-
-        ctx.fillStyle = "rgb(255, 255, 0)";
-        for(var i = 0 ;i < this.letterOrder.length; i++){
-            if(this.letterOrder[i] > this.letterIndex) continue;
-            var spacing = 70;
-            var xx = spacing*i -spacing*this.letterOrder.length/2 + spacing/2;
-            var yy = -140;
-            
-            ctx.fillText(this.message[i], xx, yy);
-        }
-        
-    }   
-}
-
-
-
-class CalendarDashboard {
-    constructor() {
-
-
-
-        // Birthday
-        this.birthMonth = 12;
-        this.birthDay = 6;
-
-        // Actual Time
-        this.actSec = 0;
-        this.prevSec = 0;
-
-        // Display
-        this.days = 0;
-        this.hours = 0;
-        this.minutes = 0;
-        this.seconds = 0;
-
-        this.done = false;
-
-        // this.introAlarm = new Alarm(400);
-        // this.preStartAlarm = new Alarm(50);
-        // this.startAlarm = new Alarm(200);
-
-        this.stateMachine = new StateMachine([400, 50, 200]);
-        this.stateMachine.autoProgress = true;
-        this.stateMachine.onStateChange = (state) => {
-            this.onStateChange(state);
-        }
-
-        this.state = 0;
-        this.progress = 0;
-
-        this.x =  canvasWidth / 2;
-        this.y =  canvasHeight / 2;
-
-        this.shakeX = 0;
-        this.shakeY = 0;
+        this.specialPeriods = [
+            {name: "Easter", start:{day:22, month:3}, duration:34},
+            {name: "April Fools", start:{day:1, month:4}, duration:2},
+            {name: "Halloween", start:{day:20, month:10}, duration:12},
+            {name: "Christmas", start:{day:22, month:12}, duration:5},
+            {name: "New Year", start:{day:31, month:12}, duration:2}
+        ];
 
         // Messages
         this.messages = [
@@ -145,13 +31,6 @@ class CalendarDashboard {
             {text: "APROVEITE O DIA", tags: ["kind"]},
         ];
 
-        this.message = this.getMessageOfTheDay().text;
-        this.messageSubtext = this.getMessageOfTheDay().subtext;
-
-        // Reveal system
-        this.revealOrder = this.createRevealOrder(this.message);
-        this.letterIndex = 0;
-
         this.weekdays = [
             "Domingo",
             "Segunda-feira",
@@ -162,48 +41,110 @@ class CalendarDashboard {
             "Sábado"
         ];
 
-        // this.animeText = new TextLine();
-        // var line = this.animeText;
+        for(var birthday of this.birthdays){
+            birthday.remaining = this.getRemainingTime(birthday).days;
+            birthday.remainText = String(birthday.remaining).padStart(3, " ");
+        }
 
-        // line.addText("H", {font: "48px Arial"});
-        // line.addText("ello World", {
-        //     font: "18px Arial",
-        //     color: "#9e3030",
-        //     effects:{wave:{amplitude:5, phase:0, speed:0.05, phaseX:0.05}},
-        // });
-        // line.layout();
+        this.birthdays.sort((a,b) => a.remaining - b.remaining);
+
+        this.closestBirthday = this.getClosestBirthday(this.birthdays);
+        // Birthday
+        this.birthMonth = this.closestBirthday.month;
+        this.birthDay = this.closestBirthday.day;
+
+        // Actual Time
+        this.actSec = 0;
+        this.prevSec = 0;
+
+        // Display
+        this.days = 0;
+        this.hours = 0;
+        this.minutes = 0;
+        this.seconds = 0;
+
+        this.done = false;
+
+   
+
+
+
+        this.shakeX = 0;
+        this.shakeY = 0;
+
+
+
+        this.message = this.getMessageOfTheDay().text;
+        this.messageSubtext = this.getMessageOfTheDay().subtext;
+
+        // Reveal system
+        this.revealOrder = this.createRevealOrder(this.message);
+        this.letterIndex = 0;
+
+
+
         this.finishedIntro = false;
 
-      
-        this.specialDay = ""; // Christmas, Halloween, Easter, Newyear, "Brotherbday", "Motherbday", "Fatherbday"
+        this.stateMachine = new StateMachine([introDuration, 50, 200]);
+        this.stateMachine.autoProgress = true;
+        this.stateMachine.onStateChange = (state) => {
+            this.onStateChange(state);
+        }
+    }
+
+    getClosestBirthday(birthdays) {
+        const today = new Date();
+
+        let closest = null;
+        let closestDiff = Infinity;
+
+        for (const birthday of birthdays) {
+            let date = new Date(
+                today.getFullYear(),
+                birthday.month - 1, // JS months are 0-11
+                birthday.day
+            );
+
+            // Birthday already happened this year → use next year
+            if (date < today) {
+                date.setFullYear(today.getFullYear() + 1);
+            }
+
+            const diff = date - today;
+
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                closest = birthday;
+            }
+        }
+
+        return closest;
     }
 
 
-
-    getNextBirthday() {
-
+    getNextBirthdayDate(birthday){
         const now = new Date();
 
-        let birthday = new Date(
+        let birthdayDate = new Date(
             now.getFullYear(),
-            this.birthMonth - 1,
-            this.birthDay,
+            birthday.month - 1,
+            birthday.day,
             0,
             0,
             0
         );
 
-        if (birthday < now) {
-            birthday.setFullYear(birthday.getFullYear() + 1);
+        if (birthdayDate < now) {
+            birthdayDate.setFullYear(birthdayDate.getFullYear() + 1);
         }
 
-        return birthday;
+        return birthdayDate;
     }
 
-    getRemainingTime() {
+    getRemainingTime(birthday = this.closestBirthday) {
 
         const now = new Date();
-        const target = this.getNextBirthday();
+        const target = this.getNextBirthdayDate(birthday);
 
         const diff = target - now;
 
@@ -282,35 +223,10 @@ class CalendarDashboard {
 
     update(dt) {
 
-        
-        // if(this.finishedIntro){
-        //     this.preStartAlarm.update(dt);
-        //     this.startAlarm.update(dt);
-            
-        //     this.progress = this.startAlarm.percentage();
-            
-        // } else {
-        //     this.introAlarm.update(dt);
-        //     if(this.introAlarm.finished){
-        //         this.finishedIntro = true;
-        //         manager.finishIntro();
-        //     }
-        // }
 
         this.stateMachine.update(dt);
 
-
-
-
-
-
-
         const remaining = this.getRemainingTime();
-
-        
-       
-    
-        
 
         this.days = remaining.days;
         this.hours = remaining.hours;
@@ -363,6 +279,21 @@ class CalendarDashboard {
             ctx.font = "48px Fixedsys";
             ctx.fillStyle = "rgb(255,255,255)";
             ctx.fillText(this.getTimeString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 100);
+
+            
+            ctx.textAlign = "left";
+            ctx.font = "24px Fixedsys";
+            
+            // for(var i = 0; i < this.birthdays.length; i++){
+            //     var birth = this.birthdays[this.birthdays.length-1 - i];
+            //     var light = 55 - (this.birthdays.length-1 - i)*15;
+            //     ctx.fillStyle = "rgb("+light+","+light+","+light+")";
+            //     ctx.fillText(birth.name + " " + birth.remainText, -canvasWidth/2 + 20 + xDisplace, +canvasHeight/2 - 20 -20*i);
+            // }
+            // ctx.font = "30px Fixedsys";
+            // ctx.fillStyle = "rgb(70, 70, 70)";
+            // ctx.fillText("Dias", -canvasWidth/2 + 20 + xDisplace, +canvasHeight/2 - 20 -20*4.5);
+            
         }
 
         ctx.font = "100px Fixedsys";

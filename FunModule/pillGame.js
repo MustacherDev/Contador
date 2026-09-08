@@ -57,21 +57,29 @@ class DrMarioPlayerPill {
     }
 }
 
-class DrMarioGame {
-    constructor(wid, hei) {
+class DrMarioGame extends BaseObject{
+    constructor(x,y,wid,hei, cols, rows,) {
+        super(x,y);
+
         this.wid = wid;
         this.hei = hei;
 
+        this.originX = 0;
+        this.originY = 0;
+
+        this.cols = cols;
+        this.rows = rows;
+
         this.grid = [];
-        for(var i = 0; i < this.hei; i++){
+        for(var i = 0; i < this.rows; i++){
             var row = [];
-            for(var j = 0; j < this.wid; j++){
+            for(var j = 0; j < this.cols; j++){
                 row.push(new DrMarioObj(0, 0));
             }
             this.grid.push(row);
         }
 
-        this.colorPool = [];
+
 
         this.nextPill = null;
         this.playerPill = null;
@@ -79,27 +87,25 @@ class DrMarioGame {
         this.fillHeight = 0;
 
 
+        // TIMING AND ALARMS
         this.stepAlarm = new Alarm(4);
 
         this.horizontalTurboAlarm = new Alarm(15);
         this.horizontalTurboMoveCooldown = new Alarm(4);
-
         this.horizontalTurboAlarm.pause();
-
-        this.virusFrame = 0;
-        this.virusFrameSpd = 0.08;
-
-        // this.winSprAlarm = new Alarm(50);
-        // this.winSprImg = 0;
 
         this.sequenceWaitAlarm = new Alarm(3);
 
+        this.downHoldImunityAlarm = new Alarm(10);
+
         this.pillNormalSpd = 0.1;
         this.pillFastSpd = 3;
-
-        this.hasBackground = false;
-
         this.pillSpd = this.pillNormalSpd;
+
+        this.virusFrame = 0;
+        this.virusFrameSpd = 0.08;
+        
+
 
         this.placingPill = false;
 
@@ -113,11 +119,15 @@ class DrMarioGame {
         this.toMove = 0;
         this.toTurn = 0;
 
-        this.downHoldImunityAlarm = new Alarm(10);
+
+
+        this.hasBackground = false;
+        this.hasAutoInput = false;
+        this.colorPool = [];
 
 
 
-        this.init(this.wid, this.hei);
+        this.init(this.cols, this.rows);
     }
 
     getRandomColor(){
@@ -141,15 +151,17 @@ class DrMarioGame {
         return this.createPlayerPill(this.getRandomColor(), this.getRandomColor());
     }
 
-
+    autoInput(){
+        this.input(input.keyState[KeyCodes.KeyA], input.keyState[KeyCodes.KeyD], input.keyState[KeyCodes.KeyS][0], input.keyState[KeyCodes.KeyW][1]);
+    }
 
     init(wid, hei) {
-        this.wid = wid;
-        this.hei = hei;
+        this.cols = wid;
+        this.rows = hei;
 
         this.colorPool = [DRMARIOCOLOR.BLUE, DRMARIOCOLOR.RED, DRMARIOCOLOR.GREEN, DRMARIOCOLOR.YELLOW, DRMARIOCOLOR.PURPLE];
 
-        this.pillSpawnX = Math.floor(this.wid / 2) - 1;
+        this.pillSpawnX = Math.floor(this.cols / 2) - 1;
 
         this.playerPill = this.createRandomPlayerPill();
         this.setState(0);
@@ -159,19 +171,19 @@ class DrMarioGame {
 
     clearJar(){
         var cleanSpace = new DrMarioObj(0, 0);
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 this.grid[i][j].copy(cleanSpace);
             }
         }    
     }
 
     fillVirus(){
-        this.fillHeight = Math.floor(this.hei / 1.6);
+        this.fillHeight = Math.floor(this.rows / 1.6);
 
 
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 if (chance(0.4) && i > this.fillHeight) {
                     this.grid[i][j] = this.createVirus(this.getRandomColor());
                 }
@@ -280,7 +292,7 @@ class DrMarioGame {
             return;
         }
 
-        if(this.playerPill.x + dir > this.wid - pillWid){
+        if(this.playerPill.x + dir > this.cols - pillWid){
             return;
         }
 
@@ -333,12 +345,12 @@ class DrMarioGame {
         var pill1 = new Vector(x, y);
         var pill2 = new Vector(x + oriAdd[ori].x, y + oriAdd[ori].y);
 
-        if (pill1.x < 0 || pill1.x >= this.wid) {
+        if (pill1.x < 0 || pill1.x >= this.cols) {
             return true;
         }
 
 
-        if (pill1.y >= this.hei) {
+        if (pill1.y >= this.rows) {
             return true;
         }
 
@@ -350,12 +362,12 @@ class DrMarioGame {
 
 
 
-        if (pill2.x < 0 || pill2.x >= this.wid) {
+        if (pill2.x < 0 || pill2.x >= this.cols) {
             return true;
         }
 
 
-        if (pill2.y >= this.hei) {
+        if (pill2.y >= this.rows) {
             return true;
         }
 
@@ -372,6 +384,7 @@ class DrMarioGame {
 
     update(dt) {
         if (!this.ready) return;
+        if (!this.active) return;
 
         this.virusFrame += this.virusFrameSpd*dt;
         this.virusFrame %= 2;
@@ -389,28 +402,9 @@ class DrMarioGame {
         this.horizontalTurboAlarm.update(dt);
         this.horizontalTurboMoveCooldown.update(dt);
 
-        // this.blinkAlarm.update(dt);
-        // this.blinkHoldAlarm.update(dt);
-
-        // if(this.blinkAlarm.finished){
-        //     this.blinkingCell = randInt(0, this.wid*this.hei);
-        //     this.blinkHoldAlarm.start();
-        //     this.blinkAlarm.stop();
-        // }
-
-        // if(this.blinkHoldAlarm.finished){
-        //     this.blinkingCell = -1;
-        //     this.blinkAlarm.start();
-        //     this.blinkHoldAlarm.stop();
-        // }
-
-        // this.winSprAlarm.update(dt);
-        // if(this.winSprAlarm.finished){
-        //     this.winSprImg ++;
-        //     this.winSprImg = this.winSprImg%2;
-
-        //     this.winSprAlarm.restart();
-        // }
+        if(this.hasAutoInput){
+            this.autoInput();
+        }
 
         this.downHoldImunityAlarm.update(dt);
 
@@ -421,7 +415,7 @@ class DrMarioGame {
             
 
             if (this.runState == 0) {
-                if (this.playerPill.y == this.hei - 1) {
+                if (this.playerPill.y == this.rows - 1) {
                     this.placePlayerPill();
                 } else {
                     if(this.checkPillCollision(this.playerPill.x, this.playerPill.y+1, this.playerPill.orientation)){
@@ -461,11 +455,11 @@ class DrMarioGame {
         
 
         // HORIZONTAL SEQUENCES
-        for (var i = 0; i < this.hei; i++) {
+        for (var i = 0; i < this.rows; i++) {
             var lastColor = -1;
             var count = 0;
             var startIndex = -1;
-            for (var j = 0; j < this.wid; j++) {
+            for (var j = 0; j < this.cols; j++) {
                 var type = this.grid[i][j].type;
                 var color = this.grid[i][j].color;
 
@@ -514,7 +508,7 @@ class DrMarioGame {
 
 
             if (count >= minSeqWid) {
-                for (var k = startIndex; k < this.wid; k++) {
+                for (var k = startIndex; k < this.cols; k++) {
                     this.grid[i][k].destroying = true;
                 }
                 sequences++;
@@ -522,12 +516,12 @@ class DrMarioGame {
         }
 
         // VERTICAL SEQUENCES
-        for (var j = 0; j < this.wid; j++) {
+        for (var j = 0; j < this.cols; j++) {
             var lastColor = -1;
             var count = 0;
             var startIndex = -1;
 
-            for (var i = 0; i < this.hei; i++) {
+            for (var i = 0; i < this.rows; i++) {
                 var type = this.grid[i][j].type;
                 var color = this.grid[i][j].color;
 
@@ -570,7 +564,7 @@ class DrMarioGame {
             }
 
             if (count >= minSeqWid) {
-                for (var k = startIndex; k < this.hei; k++) {
+                for (var k = startIndex; k < this.rows; k++) {
                     this.grid[k][j].destroying = true;
                 }
                 sequences++;
@@ -579,14 +573,14 @@ class DrMarioGame {
 
         // CHECKS IF ANY OF THE DESTROYED TILES IS A VIRUS
         var virusSequence = false;
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 if(!this.grid[i][j].destroying) continue;
                 if(this.grid[i][j].type != DRMARIOTYPE.VIRUS) continue;
 
                 virusSequence = true;
-                i = this.hei;
-                j = this.wid;
+                i = this.rows;
+                j = this.cols;
                 break;
             }
         }
@@ -634,8 +628,8 @@ class DrMarioGame {
 
        
 
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 if (this.grid[i][j].destroying) {
                     this.grid[i][j] = new DrMarioObj(0, 0);
                 }
@@ -644,8 +638,8 @@ class DrMarioGame {
 
         var or2Vec = [new Vector(1, 0), new Vector(0, -1), new Vector(-1, 0), new Vector(0, 1)];
 
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 if (this.grid[i][j].type == DRMARIOTYPE.DOUBLEPILL) {
                     var vec = or2Vec[this.grid[i][j].orientation];
 
@@ -672,8 +666,8 @@ class DrMarioGame {
         // CHECKING BOTTOM FIRST
         // FALLING SAND PHYSICS
         var moved = false;
-        for (var i = this.hei - 2; i > 0; i--) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = this.rows - 2; i > 0; i--) {
+            for (var j = 0; j < this.cols; j++) {
                 var type = this.grid[i][j].type;
                 if (type == DRMARIOTYPE.EMPTY || type == DRMARIOTYPE.VIRUS) continue;
                 if (type == DRMARIOTYPE.PILL) {
@@ -721,8 +715,8 @@ class DrMarioGame {
         }
 
         // CHECK IF NEXT STEP WILL HAVE PILL FALLING UPDATES
-        for (var i = this.hei - 2; i > 0; i--) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = this.rows - 2; i > 0; i--) {
+            for (var j = 0; j < this.cols; j++) {
                 var type = this.grid[i][j].type;
                 if (type == DRMARIOTYPE.EMPTY || type == DRMARIOTYPE.VIRUS) continue;
                 if (type == DRMARIOTYPE.PILL) {
@@ -740,8 +734,8 @@ class DrMarioGame {
 
     countVirus(){
         var count = 0;
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 var obj = this.grid[i][j];
                 if(obj.type == DRMARIOTYPE.VIRUS){
                     count++;
@@ -752,39 +746,32 @@ class DrMarioGame {
     }
 
 
-    
+    pushDraw(){
+        manager.addDrawObject(this);
+    }
 
-    draw(xx, yy, ww, hh) {
-        var x = xx;
-        var y = yy;
-        var w = ww / this.wid;
-        var h = hh / this.hei;
+    draw(ctx) {
+        if(!this.visible) return;
+        
+        var x = this.x - this.originX*this.wid;
+        var y = this.y - this.originY*this.hei;
+        var w = this.wid / this.cols;
+        var h = this.hei / this.rows;
         var scl = w / sprites[SPR.DRMARIOSHEET].width;
 
         if(this.hasBackground){
             ctx.fillStyle = "rgb(0,0,0)";
-            ctx.fillRect(x, y, ww, hh);
+            ctx.fillRect(x, y, this.wid, this.hei);
         }
 
         var paleteWid = 6;
 
-        for (var i = 0; i < this.hei; i++) {
-            for (var j = 0; j < this.wid; j++) {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
                 var obj = this.grid[i][j];
 
                 var type = obj.type;
 
-                // if(obj.type == DRMARIOTYPE.VIRUS){
-                //     if(obj.destroying){
-                //         type = 3;
-                //     } else {
-                //         if(chance(0.05)){
-                //             type = 2;
-                //         }
-                //     }
-                // } else {
-                //     type = obj.type + 2;
-                // }
 
                 var color = obj.color;
                 var angle = 0;
@@ -803,7 +790,7 @@ class DrMarioGame {
                 if(obj.type == DRMARIOTYPE.VIRUS){
 
 
-                    if(this.blinkingCell == i*this.wid + j || this.virusFrame >= 1){
+                    if(this.blinkingCell == i*this.cols + j || this.virusFrame >= 1){
                         imgType = 2;
                     }  
                 } else {

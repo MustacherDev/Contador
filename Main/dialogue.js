@@ -45,12 +45,19 @@ class Glyph {
         this.scaleY = 1;
 
         this.rotation = 0;
+        
+        this.alpha = 1;
 
         // =========================
         // EFFECTS
         // =========================
 
         this.effect = style.effects ?? null;
+
+        
+        this.revealTime = 0;
+        this.revealed = false;
+        this.hasReveal = false;
 
         // Optional arbitrary user data.
         this.data = {};
@@ -151,9 +158,10 @@ class TextLine {
 
 
 
-class TextBlock {
+class TextBlock extends BaseObject{
 
     constructor(x = 0, y = 0, width = 300, height = 100) {
+        super(x, y);
 
         // =========================
         // RECTANGLE
@@ -161,6 +169,11 @@ class TextBlock {
 
         this.x = x;
         this.y = y;
+        this.xScl = 1;
+        this.yScl = 1;
+        this.ang = 0;
+        this.alpha = 1;
+        this.depth = 0;
 
         this.width = width;
         this.height = height;
@@ -195,6 +208,35 @@ class TextBlock {
 
         this.layoutWidth = 0;
         this.layoutHeight = 0;
+
+        this.time = 0;
+
+
+
+        this.hasReveal = false;
+        this.revealIndex = -1;
+        this.revealIndexPrev = -1;
+        this.revealSpd = 0.1;
+    }
+
+    update(dt){
+        this.time += dt;
+
+        if (this.hasReveal) {
+            this.revealIndex += this.revealSpd * dt;
+
+            const newRevealIndex = Math.floor(this.revealIndex);
+            if (newRevealIndex > this.revealIndexPrev) {
+                for (let i = this.revealIndexPrev + 1; i <= newRevealIndex; i++) {
+                    if (i >= this.glyphs.length) break;
+
+                    this.glyphs[i].revealed = true;
+                    this.glyphs[i].revealTime = this.time;
+                }
+
+                this.revealIndexPrev = newRevealIndex;
+            }
+        }
     }
 
 
@@ -204,6 +246,7 @@ class TextBlock {
 
     addGlyph(glyph) {
 
+        glyph.index = this.glyphs.length;
         this.glyphs.push(glyph);
 
         this.dirty = true;
@@ -281,8 +324,10 @@ class TextBlock {
                 line.width > this.width
             ) {
 
-                this.wrapLine(layoutEngine, line);
+                line = this.wrapLine(layoutEngine, line);
             }
+
+
         }
 
 
@@ -444,8 +489,10 @@ class TextBlock {
         // too large.
 
         if (newLine.width > this.width) {
-            this.wrapLine(layoutEngine, newLine);
+            return this.wrapLine(layoutEngine, newLine);
         }
+
+        return newLine;
     }
 
 
@@ -454,59 +501,31 @@ class TextBlock {
     // ============================================================
 
     getHorizontalStart(line) {
-
         switch (this.horizontalAlign) {
-
             case "center":
-
-                return (
-                    this.x +
-                    (this.width - line.width) / 2
-                );
-
+                return ((this.width - line.width) / 2);
 
             case "right":
-
-                return (
-                    this.x +
-                    this.width -
-                    line.width
-                );
-
+                return (this.width -line.width);
 
             case "left":
             default:
-
-                return this.x;
+                return 0;
         }
     }
 
 
     getVerticalStart() {
-
         switch (this.verticalAlign) {
-
             case "center":
-
-                return (
-                    this.y +
-                    (this.height - this.layoutHeight) / 2
-                );
-
+                return ((this.height - this.layoutHeight) / 2);
 
             case "bottom":
-
-                return (
-                    this.y +
-                    this.height -
-                    this.layoutHeight
-                );
-
+                return (this.height -this.layoutHeight);
 
             case "top":
             default:
-
-                return this.y;
+                return 0;
         }
     }
 
@@ -531,17 +550,82 @@ class TextBlock {
     // DRAW
     // ============================================================
 
-    draw(renderer, time = 0) {
+
+    setReveal(hasReveal){
+        this.hasReveal = hasReveal;
+
+        for(var glyph of this.glyphs){
+            glyph.hasReveal = hasReveal;
+            glyph.revealed = false;
+            glyph.revealTime = 0;
+        }
+    }
+
+    revealRestart(){
+        this.setRevealIndex(0);
+    }
+
+    setRevealIndex(revealIndex){
+        this.revealIndex = revealIndex;
+        this.revealIndexPrev = revealIndex-1;
+
+        for(var glyph of this.glyphs){
+            if(glyph.index < revealIndex){
+                glyph.revealTime = -1000;
+                glyph.revealed = true;
+            } else {
+                glyph.revealed = false;
+            }
+        }
+    }
+
+    getGlyph(index){
+        return this.glyphs[index];
+    }
+
+    draw(ctx, time = this.time) {
+
+        ctx.save();
+
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.ang);
+        ctx.scale(this.xScl, this.yScl);
+
+        ctx.globalAlpha *= this.alpha;
+
+        if (this.dirty) {
+            this.layout();
+        }
 
         for (const line of this.lines) {
 
-            renderer.drawLine(
-                line,
-                time
-            );
+            for (const glyph of line.glyphs) {
+                TextEngine.renderer.draw(
+                    glyph,
+                    time
+                );
+            }
         }
+
+        ctx.restore();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -753,6 +837,8 @@ class GlyphRenderer {
 
     draw(glyph, time = 0) {
 
+        if(glyph.hasReveal && !glyph.revealed) return;
+
         const ctx = this.ctx;
 
         ctx.save();
@@ -766,6 +852,14 @@ class GlyphRenderer {
         let x = glyph.x;
         let y = glyph.y;
 
+        let alpha = glyph.alpha;
+
+        let sclX = glyph.scaleX;
+        let sclY = glyph.scaleY;
+
+        let ang = glyph.rotation;
+
+
         // =========================
         // VISUAL OFFSET
         // =========================
@@ -773,28 +867,7 @@ class GlyphRenderer {
         x += glyph.offsetX;
         y += glyph.offsetY;
 
-        // =========================
-        // TRANSFORM
-        // =========================
-
-        if (
-            glyph.scaleX !== 1 ||
-            glyph.scaleY !== 1 ||
-            glyph.rotation !== 0
-        ) {
-
-            ctx.translate(x, y);
-
-            ctx.rotate(glyph.rotation);
-
-            ctx.scale(
-                glyph.scaleX,
-                glyph.scaleY
-            );
-
-            x = 0;
-            y = 0;
-        }
+  
 
         // =========================
         // EFFECTS
@@ -805,39 +878,70 @@ class GlyphRenderer {
 
             if (effect.shake) {
 
-                const amount =
-                    effect.shake.amplitude ?? 2;
+                const amount = effect.shake.amplitude ?? 2;
 
-                x +=
-                    (Math.random() * 2 - 1) *
-                    amount;
-
-                y +=
-                    (Math.random() * 2 - 1) *
-                    amount;
+                x += (Math.random() * 2 - 1) * amount;
+                y += (Math.random() * 2 - 1) * amount;
             }
 
             if (effect.wave) {
-
-
-                const amplitude =
-                    effect.wave.amplitude ?? 3;
-
-                const speed =
-                    effect.wave.speed ?? 5;
-
-                var phase =
-                    effect.wave.phase ?? 0;
+                const amplitude = effect.wave.amplitude ?? 3;
+                const speed = effect.wave.speed ?? 5;
+                var phase = effect.wave.phase ?? 0;
 
                 var phaseXRel = effect.wave.phaseX ?? 0;
                 phase += phaseXRel*glyph.x; 
 
-                y += Math.sin(
-                    time * speed +
-                    phase
-                ) * amplitude;
+                y += Math.sin( time * speed + phase) * amplitude;
+            }
+
+            if(glyph.hasReveal){
+                if(glyph.revealed){
+                    var diff = Math.max(time - glyph.revealTime, 0);
+
+                    if(effect.fadeIn){
+                        var duration = effect.fadeIn.duration ?? 200;
+                        var prog = clamp(diff/duration, 0, 1);
+
+                        alpha *= prog;
+                        
+                    }
+
+                    if(effect.fadeOut){
+                        var duration = 100;
+                        var prog = clamp((diff-300)/duration, 0, 1);
+
+                        alpha *= 1-prog;
+                        
+                    }
+                } else {
+                    alpha = 0;
+                }
             }
         }
+
+
+        // =========================
+        // TRANSFORM
+        // =========================
+
+        ctx.globalAlpha *= alpha;
+
+        if (sclX !== 1 || sclY !== 1 || ang !== 0) {
+
+            ctx.translate(x, y);
+
+            ctx.rotate(ang);
+
+            ctx.scale(
+                sclX,
+                sclY
+            );
+
+            x = 0;
+            y = 0;
+        }
+
 
         ctx.fillText(
             glyph.char,
@@ -848,8 +952,10 @@ class GlyphRenderer {
         ctx.restore();
     }
 
-    drawLine(line, time = 0) {
-        for (const glyph of line.glyphs) {
+    drawLine(line, time = 0, visChars = -1) {
+        for (var i = 0; i < line.glyphs.length; i++) {
+            var glyph = line.glyphs[i];
+            if(visChars != -1 && visChars < i) return;
             this.draw(glyph, time);
         }
     }

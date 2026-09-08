@@ -154,6 +154,7 @@ class StateMachine{
 
     this.totalTime  = 0;
     this.totalTimer = 0;
+    this.totalTimerWhole = 0;
     this.totalProgress = 0;
 
     this.autoProgress = false;
@@ -164,8 +165,10 @@ class StateMachine{
     
     for(var duration of stateDurationList){
       this.stateList.push(new Alarm(duration));
-      this.time += duration;
+      this.totalTime += duration;
     }
+
+    this.paused = false;
   }
 
   getProgress(state = this.state){
@@ -176,16 +179,56 @@ class StateMachine{
     if(!this.canProgress) return;
     this.canProgress = false;
     if(this.state < this.stateList.length-1){
+      this.totalTimerWhole += this.stateList[this.state].duration;
       this.state++;
+
       this.onStateChange?.(this.state);
     } else {
+      this.totalTimerWhole += this.stateList[this.state].duration;
+      this.onStateChange?.(this.state+1);
       this.finished = true;
     }
   }
 
+  restart(){
+    for(var alarm of this.stateList){
+      alarm.restart();
+    }
+    this.state = 0;
+    this.progress = 0;
+
+    this.totalTimer = 0;
+    this.totalTimerWhole = 0;
+    this.totalProgress = 0;
+    this.canProgress  = false;
+    this.finished = false;
+
+    this.paused = false;
+  } 
+
+  stop(){
+    this.restart();
+    this.paused = true;
+  }
+
+  start(){
+    this.restart();
+    this.paused = false;
+    this.onStateChange?.(this.state);
+
+  }
+
   update(dt){
-    this.stateList[this.state].update(dt);
-    this.progress = this.getProgress();
+    
+    if(this.state < this.stateList.length){
+      if(this.paused) dt = 0;
+      
+      this.stateList[this.state].update(dt);
+      this.progress = this.getProgress();
+      this.totalTimer = this.totalTimerWhole + this.stateList[this.state].timer;
+    }
+
+    this.totalProgress = this.totalTimer/this.totalTime;
 
     if(!this.canProgress){
       if(this.stateList[this.state].finished){
@@ -196,9 +239,6 @@ class StateMachine{
     if(this.autoProgress){
       this.proceed();
     }
-
-    this.totalTimer += dt;
-    this.totalProgress = this.totalTimer/this.totalTime;
   }
 }
 

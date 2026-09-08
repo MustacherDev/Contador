@@ -200,11 +200,9 @@ class HallPortrait {
     }
 }
 
-class FameHall {
-    constructor(x, y) {
-
-        this.x = x;
-        this.y = y;
+class FameHall extends BaseObject {
+    constructor(x, y, configIndex = 0) {
+        super(x, y);
 
         this.slotSize = 120;
         this.rowSpace = 30;
@@ -216,48 +214,84 @@ class FameHall {
         this.width = ((this.slotSize + this.colSpace) * this.cols) + this.colSpace;
         this.height = ((this.slotSize + this.rowSpace) * this.rows) + this.rowSpace;
 
+        this.configs = [
+            {
+                spriteId:SPR.PORTRAITS,
+                hasSecondPortrait: [0, 1, 3, 4, 5, 7, 10, 12, 17],
+                sclFactor:0.75,
+                extraPortraitSetup: [
+                    { ind: 0,  color: "rgb(85, 37, 81)" },
+                    { ind: 6,  color: "rgb(80, 72, 133)",  clipH: true },
+                    { ind: 12, color: "rgb(43, 10, 40)" },
+                    { ind: 7,  color: "rgb(120, 56, 56)" },
+                    { ind: 8,  color: "rgb(188, 115, 115)" },
+                    { ind: 9,  color: "rgb(197, 32, 32)" },
+                    { ind: 10, color: "rgb(236, 115, 198)", clipH: true },
+                    { ind: 11, color: "rgb(241, 223, 191)", clipH: true },
+                    { ind: 13, color: "rgb(149, 147, 144)"}
+                ]
+            },
+            {
+                spriteId:SPR.PORTRAITS2,
+                hasSecondPortrait: [],
+                sclFactor:0.75,
+                extraPortraitSetup: [
+                    { ind: 0,  color: "rgb(85, 37, 81)" },
+                    { ind: 6,  color: "rgb(241, 230, 14)",  clipH: true },
+                    { ind: 12, color: "rgb(185, 93, 231)" },
+                    { ind: 1,  color: "rgb(29, 189, 82)" },
+                    { ind: 7,  color: "rgb(181, 52, 48)",  clipH: true },
+                    { ind: 13, color: "rgb(154, 197, 240)" },
+                    { ind: 2,  color: "rgb(255, 118, 20)" },
+                    { ind: 8,  color: "rgb(49, 0, 211)" },
+                    { ind: 14,  color: "rgb(197, 32, 32)" },
+                    { ind: 3, color: "rgb(189, 189, 189)", clipH: true },
+                    { ind: 9, color: "rgb(250, 124, 124)", clipH: true },
+                    { ind: 15, color: "rgb(105, 55, 180)", clipH: true },
+                    { ind: 4,  color: "rgb(19, 114, 40)" },
+                    { ind: 10,  color: "rgb(102, 240, 220)" },
+                    { ind: 16,  color: "rgb(252, 27, 27)" },
+                    { ind: 5,  color: "rgb(141, 80, 255)" },
+                    { ind: 11,  color: "rgb(244, 250, 83)" },
+                    { ind: 17,  color: "rgb(127, 236, 18)" }
+                ]
+            },
+        ];
+
+        var config = this.configs[configIndex];
+
+
         this.slots = [];
-        var hasSecondPortrait = [0, 1, 3, 4, 5, 7, 10, 12, 17];
+        var hasSecondPortrait = config.hasSecondPortrait;
+
         for (var i = 0; i < this.rows; i++) {
             for (var j = 0; j < this.cols; j++) {
                 var ind = j + i*this.cols;
 
+                var sclFac = config.sclFactor;
+
                 var color =  "hsl(" + (ind * 71.57) % 360 + ", 70%, 50%)";
                 var port0 = new HallPortrait({ color: "rgb(50,50,50)", spriteId: -1, img: 0});
-                var port1 = new HallPortrait({ color:color, spriteId: SPR.PORTRAITS, img: ind % 18});
-                var port2 = new HallPortrait({ color: "rgb(50,50,50)", spriteId: SPR.PORTRAITS, img: 18+ (ind % 18)});
+                var port1 = new HallPortrait({ color:color, spriteId: config.spriteId, img: ind % 18, sclX:sclFac, sclY:sclFac});
+                var port2 = new HallPortrait({ color: "rgb(50,50,50)", spriteId: config.spriteId, img: 18+ (ind % 18), sclX:sclFac, sclY:sclFac});
                 var slot = new HallSlot(this, j, i, [port0, port1]);
                 if(hasSecondPortrait.includes(ind)) slot.portraits.push(port2);
                 this.slots.push(slot);
             }
         }
 
-        this.slots[0].portraits[1].color = "rgb(85, 37, 81)";
-        //this.slots[0].portraits[1].color = "rgb(85, 37, 81)";
+        for(var setup of config.extraPortraitSetup){
+            var ind = setup.ind;
 
-        this.slots[6].portraits[1].color = "rgb(67, 42, 93)";
-        //this.slots[6].portraits[1].color = "rgb(67, 42, 93)";
-        this.slots[6].portraits[1].clipH = true;
+            if(setup.color){
+                this.slots[ind].portraits[1].color = setup.color;
+            }
 
-        this.slots[12].portraits[1].color = "rgb(43, 10, 40)";
-       // this.slots[12].portraits[1].color = "rgb(43, 10, 40)";
-
-        this.slots[7].portraits[1].color = "rgb(120, 56, 56)";
-        //this.slots[7].portraits[1].color = "rgb(120, 56, 56)";
-
-        this.slots[8].portraits[1].color = "rgb(188, 115, 115)";
-        //this.slots[8].portraits[1].color = "rgb(188, 115, 115)";
-
-        this.slots[9].portraits[1].color = "rgb(197, 32, 32)";
-        //this.slots[9].portraits[1].color = "rgb(197, 32, 32)";
-
-        this.slots[10].portraits[1].color = "rgb(236, 115, 198)";
-        //this.slots[10].portraits[1].color = "rgb(236, 115, 198)";
-        this.slots[10].portraits[1].clipH = true;
-
-        this.slots[11].portraits[1].color = "rgb(213, 147, 192)";
-        //this.slots[11].portraits[1].color = "rgb(213, 147, 192)";
-        this.slots[11].portraits[1].clipH = true;
+            var clipH = setup.clipH ?? false;
+            var clipV = setup.clipV ?? false;
+            this.slots[ind].portraits[1].clipH = clipH;
+            this.slots[ind].portraits[1].clipV = clipV;
+        }
 
 
         for(var slot of this.slots){
@@ -273,8 +307,6 @@ class FameHall {
         this.firstSlotClick = false;
 
         this.actionQueue = new ActionQueue();
-
-        
     }
 
     onSlotClick(slot){
@@ -319,14 +351,18 @@ class FameHall {
     }
 
     update(dt) {
-  
         for(var slot of this.slots){
             slot.update(dt);
-            //slot.hovered = slot.checkHover(input.mouseX, input.mouseY);
-            slot.pushDraw();
         }
 
         this.actionQueue.update(dt);
+    }
+
+    pushDraw(ctx){
+          
+        for(var slot of this.slots){
+            slot.pushDraw(ctx);
+        }
     }
 
     createDraw(depth, params) {
