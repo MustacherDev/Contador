@@ -50,7 +50,9 @@ class MagicGoatInterface extends BaseObject{
         this.textBox.setText(text);
     }
 
-    keyClick(index){
+    keyPressed(index){
+        this.keyboard.keyPressed(index);
+
         if(this.answering) return;
         if(this.dramatic) return;
 
@@ -65,6 +67,10 @@ class MagicGoatInterface extends BaseObject{
         } else if (index == 29){
             this.processText(this.textBox.text);
         }
+    }
+
+    keyReleased(index){
+        this.keyboard.keyReleased(index);
     }
 
     processText(text){
@@ -228,22 +234,40 @@ class MagicGoatInterface extends BaseObject{
         
             for(var i = KeyCodes.KeyA; i < KeyCodes.KeyA+26; i++){
                 if(input.keyState[i][1]){
-                    this.keyClick(i - KeyCodes.KeyA);
+                    this.keyPressed(i - KeyCodes.KeyA);
+                }
+                if(input.keyState[i][2]){
+                    this.keyReleased(i - KeyCodes.KeyA);
                 }
             }
 
             if(input.keyState[KeyCodes.Enter][1]){
-                this.keyClick(29);
+                this.keyPressed(29);
             }
             if(input.keyState[KeyCodes.Backspace][1]){
-                this.keyClick(28);
+                this.keyPressed(28);
             }
             if(input.keyState[KeyCodes.Space][1]){
-                this.keyClick(27);
+                this.keyPressed(27);
             }
             if(input.keyState[KeyCodes.Slash][1] && input.keyState[KeyCodes.Shift][0]){
-                this.keyClick(26);
+                this.keyPressed(26);
             }
+
+            if(input.keyState[KeyCodes.Enter][2]){
+                this.keyReleased(29);
+            }
+            if(input.keyState[KeyCodes.Backspace][2]){
+                this.keyReleased(28);
+            }
+            if(input.keyState[KeyCodes.Space][2]){
+                this.keyReleased(27);
+            }
+            if(input.keyState[KeyCodes.Slash][2]){
+                this.keyReleased(26);
+            }
+
+
             
             this.textBox.setEditable(!this.answering);
 
@@ -310,7 +334,16 @@ class MagicKeyboard{
             this.keys.push(new MagicKey(this.x + keyWid*i - this.wid*0.5, this.y+ keyWid*2, keyWid, extraButtons[i], 26+i));
         }
 
+        this.clickedKey = null;
+    }
 
+    keyPressed(keyInd){
+        this.keys[keyInd].setPressed(true);
+    }
+
+    keyReleased(keyInd){
+        if(this.keys[keyInd] == this.clickedKey) return;
+        this.keys[keyInd].setPressed(false);
     }
 
     update(dt){
@@ -319,18 +352,25 @@ class MagicKeyboard{
         }
 
         if(input.mouseState[0][1]){
-            var clickedKey = null;
+            this.clickedKey = null;
             for(var magicKey of this.keys){
-                if(magicKey.hovered){
-                    clickedKey = magicKey;
+                if(magicKey.hovered && !magicKey.pressed){
+                    this.clickedKey = magicKey;
                     break;
                 }
             }
 
-            if(clickedKey){
+            if(this.clickedKey){
                 if(this.owner){
-                    this.owner.keyClick(clickedKey.index);
+                    this.owner.keyPressed(this.clickedKey.index);
                 }
+            }
+        }
+
+        if(input.mouseState[0][2]){
+            if(this.clickedKey){
+                this.clickedKey.setPressed(false);
+                this.clickedKey = null;
             }
         }
     }
@@ -356,6 +396,28 @@ class MagicKey {
         this.text = text;
 
         this.hovered = false;
+        this.pressed = false;
+
+
+        this.alphaPhase = 0;
+        this.alphaPhaseSpd = 0.05;
+        this.alphaPhaseAdd = 0.3;
+        this.alphaPhaseDecay = 0.07;
+    }
+
+    setPressed(pressed){
+        if(pressed != this.pressed){
+            if(pressed){
+                SoundPlayer.play(choose([SND.KEYPRESS1,SND.KEYPRESS2,SND.KEYPRESS3]));
+            } else{
+                SoundPlayer.play(choose([SND.KEYRELEASE1,SND.KEYRELEASE2,SND.KEYRELEASE3]));
+            }
+        }
+
+        if(pressed){
+            this.alphaPhase += this.alphaPhaseAdd;
+        } 
+        this.pressed = pressed;
     }
 
     checkHover(mouseX, mouseY){
@@ -368,7 +430,19 @@ class MagicKey {
     update(dt){
         this.hovered = this.checkHover(input.mouseX, input.mouseY);
         this.sprite.setPosition(this.x, this.y);
-        if(this.hovered) {
+        
+        if(this.pressed){
+            this.alphaPhase += this.alphaPhaseSpd*dt;
+        } else {
+            this.alphaPhase -= this.alphaPhaseDecay*dt;
+        }
+
+        this.alphaPhase = clamp(this.alphaPhase, 0, 1);
+
+
+        if(this.pressed){
+            this.sprite.setFrame(1);
+        } else if(this.hovered) {
             this.sprite.setFrame(2);
         } else {
             this.sprite.setFrame(1);
@@ -377,7 +451,15 @@ class MagicKey {
 
     draw(ctx){
 
+        this.sprite.setAlpha(1);
+        var frame = this.sprite.transform.img;
         this.sprite.draw(ctx);
+
+        this.sprite.setAlpha(this.alphaPhase);
+        this.sprite.setFrame(0);
+        this.sprite.draw(ctx);
+
+        this.sprite.setFrame(frame);
         
         ctx.fillStyle = "rgb(255,255,255)";
         ctx.textAlign = "center";

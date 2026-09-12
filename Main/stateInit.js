@@ -6,6 +6,8 @@ function stateInit(dt){
             Assets.loadSprites();
             executingState = stateMenu;
 
+            manager.init();
+
             stateMenuSetup();
         }
     }

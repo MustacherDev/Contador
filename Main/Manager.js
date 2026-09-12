@@ -46,6 +46,11 @@ class FunRoom {
         this.active = false;
 
         this.ambientMusic = -1;
+        this.ambientMusicTimestamp = 0;
+        this.stopMusic = true;
+        // this.ambientMusicBeatSync = true;
+        // this.ambientMusicBeatOffset = 0;
+        this.restartMusic = true;
 
         this.objects = [];
     }
@@ -128,6 +133,14 @@ class FunRoomViewer{
         if(room.xSlot == this.xSlot && room.ySlot == this.ySlot) return true;
     }
 
+    getSlotKey(xSlot, ySlot){
+        return `${xSlot},${ySlot}`;
+    }
+
+    getRoom(xSlot, ySlot){
+        return manager.roomsMap.get(this.getSlotKey(xSlot, ySlot));
+    }
+
     changeRoom(slotX, slotY){
         this.xSlot = slotX;
         this.ySlot = slotY;
@@ -135,17 +148,37 @@ class FunRoomViewer{
         this.moving = true;
         this.alarm.start();
 
-        SoundPlayer.fadeMusic(SoundPlayer.getMusic(), 10*this.alarm.duration/2);
+  
+        var oldRoom = this.getRoom(this.xSlotPrev, this.ySlotPrev);  
+        var currentMusic = SoundPlayer.getMusic();
+        var currentMusicTimestamp = 0;
 
+        if(currentMusic != -1){
+            var currentMusicTimestamp = SoundPlayer.getTimestamp(currentMusic);
+            if(oldRoom?.stopMusic){
+                SoundPlayer.fadeMusicStop(SoundPlayer.getMusic(), 20*this.alarm.duration/2);
+            } else {
+                SoundPlayer.fadeMusic(SoundPlayer.getMusic(), 20*this.alarm.duration/2);
+            }
+        }
 
+        
+        if(oldRoom){
+            if(oldRoom.ambientMusic != -1){
+                oldRoom.ambientMusicTimestamp = currentMusicTimestamp;
+            }
+        }
 
-        var room = manager.getRoom(this.xSlot, this.ySlot);
-        if(!room) return;
-        if(room.ambientMusic == -1) return;
+        var newRoom = this.getRoom(this.xSlot, this.ySlot);
+        if(!newRoom) return;
+        if(newRoom.ambientMusic == -1) return;
 
-        SoundPlayer.playMusic(room.ambientMusic);
-        SoundPlayer.fadeIn(room.ambientMusic);
+        SoundPlayer.playMusic(newRoom.ambientMusic);
+        SoundPlayer.fadeIn(newRoom.ambientMusic, 20*this.alarm.duration/2);
 
+        if(!newRoom.restartMusic){
+            SoundPlayer.setTimestamp(newRoom.ambientMusic, newRoom.ambientMusicTimestamp);
+        }
     }
 
 
@@ -192,6 +225,8 @@ class GameManager{
         this.roomsMap = new Map();
         this.drawList = [];
 
+        this.actionQueue = new ActionQueue();
+
         // CAMERA AND ROOM VIEW
         this.mainCam = mainCam;
         this.roomViewer = new FunRoomViewer(0, 0, this.mainCam);
@@ -218,8 +253,6 @@ class GameManager{
         this.gameBeaten = false;
         this.finishStar = null;
 
-
-        this.init();
     }
 
     init(){
@@ -283,12 +316,12 @@ class GameManager{
     }
 
     createRoom(xSlot, ySlot = 0){
-        if(this.roomsMap.has(this.getSlotKey(xSlot, ySlot))) {
+        if(this.roomsMap.has(this.roomViewer.getSlotKey(xSlot, ySlot))) {
             throw new Error("TRYING TO OVERRIDE ROOM");
         }
         var room = new FunRoom(xSlot, ySlot);
         this.rooms.push(room);
-        this.roomsMap.set(this.getSlotKey(xSlot, ySlot), room);
+        this.roomsMap.set(this.roomViewer.getSlotKey(xSlot, ySlot), room);
         return room;
     }
 
@@ -317,9 +350,12 @@ class GameManager{
         var funShelves = new FunShelves(room.getX() + mdx, room.getY() + mdy);
         funShelves.randomFill(dateText);
         room.addObject(funShelves);
-        this.bigClock = new BigClock(room.getX() + mdx + 500, room.getY() + mdy + 100);
+        this.bigClock = new BigClock(room.getX() + mdx + 500, room.getY() + mdy*2);
         room.addObject(this.bigClock);
+        var houseWindow = new HouseWindow(room.getX() + mdx + 350, room.getY() + mdy -300);
+        room.addObject(houseWindow);
         room.ambientMusic = SND.BOSSAUSADA;
+        room.stopMusic = false;
 
         
         
@@ -361,7 +397,9 @@ class GameManager{
                     room = this.createRoom(1, 0);
                     this.goatInterface = new MagicGoatInterface(room.getX() + mdx, room.getY() + mdy);
                     this.goatInterface.setText("");
+                    var pGuy = new PurpleDude(room.getX() + mdx + 400, room.getY() + mdy);
                     room.addObject(this.goatInterface);
+                    room.addObject(pGuy);
                 }
             break;
             case 3:
@@ -369,16 +407,15 @@ class GameManager{
                 this.plantForest = new PlantInstance(room.getX() + mdx, room.getY() + mdy*2, Math.PI);
                 room.addObject(this.plantForest);
                 break;
+            case 4:
+                room = this.createRoom(-1, 0);
+                this.cupGame = new CupGame(room.getX() + mdx, room.getY() + mdy);
+                room.addObject(this.cupGame);
+                break;
         }
     }
 
-    getSlotKey(xSlot, ySlot){
-        return `${xSlot},${ySlot}`;
-    }
 
-    getRoom(xSlot, ySlot){
-        return this.roomsMap.get(this.getSlotKey(xSlot, ySlot));
-    }
 
     finishIntro(){
         //this.beatStyleIndex = 0;
@@ -410,6 +447,7 @@ class GameManager{
     
 
     update(dt){
+        this.actionQueue.update(dt);
 
         if(input.keyState[KeyCodes.Space][0]){
             if(input.keyState[KeyCodes.Digit1][1]) this.setupRooms(0);
@@ -422,7 +460,10 @@ class GameManager{
             if(input.keyState[KeyCodes.Digit8][1]) this.setupRooms(7);
             if(input.keyState[KeyCodes.Digit9][1]) this.setupRooms(8);
             if(input.keyState[KeyCodes.Digit0][1]) this.setupRooms(9);
+            if(input.keyState[KeyCodes.KeyF][1]) this.finishGame();
         }
+
+  
         
 
         this.faviconAnimation.update(dt);

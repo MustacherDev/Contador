@@ -124,6 +124,17 @@ class Color {
         return new Color(r, g, b, a);
     }
 
+    static getInterpol(color1, color2, percentage){
+        var t = percentage;
+        var u = 1-t;
+        return new Color(
+            Math.floor(color1.r*u + color2.r*t),
+            Math.floor(color1.g*u + color2.g*t),
+            Math.floor(color1.b*u + color2.b*t),
+            color1.a*u + color2.a*t
+        );
+    }
+
     
 
     copy(){

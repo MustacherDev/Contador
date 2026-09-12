@@ -46,6 +46,157 @@ class GameObject extends BaseObject{
     }
 }
 
+class PurpleDude extends GameObject {
+    constructor(x, y) {
+        super(x, y); 
+        this.ang = 0;
+        this.xScl = 5;
+        this.yScl = 5;
+
+        this.body = new AnimationNode(SPR.PBODY);
+        this.body.x = x;
+        this.body.y = y;
+        this.body.setRelativePivot(0,0);
+
+        this.pHead = new AnimationNode(SPR.PHEAD);
+        this.pHead.x = 9;
+        this.pHead.y = -1;
+        this.pHead.setPivot(11, 9);
+        this.body.addChild(this.pHead);
+
+        this.rLeg = new AnimationNode(SPR.PLEG);
+        this.rLeg.x = 10;
+        this.rLeg.y = 14;
+        this.rLeg.setPivot(1,1);
+        this.body.addChild(this.rLeg);
+
+
+        this.lLeg = new AnimationNode(SPR.PLEG);
+        this.lLeg.x = 6;
+        this.lLeg.y = 14;
+        this.lLeg.setPivot(1,1);
+        this.body.addChild(this.lLeg);
+
+        this.rArm = new AnimationNode(SPR.PARM);
+        this.rArm.x = 12;
+        this.rArm.y = 2;
+        this.rArm.setPivot(1,1);
+        this.body.addChild(this.rArm);
+
+        this.lArm = new AnimationNode(SPR.PARM);
+        this.lArm.x = 4;
+        this.lArm.y = 2;
+        this.lArm.setPivot(1,1);
+        this.body.addChild(this.lArm);
+
+        this.alarm = new Alarm(2400);
+        this.alarm.loop = true;
+        
+    }
+
+
+    update(dt){
+        if(!this.active) return;
+        this.alarm.update(dt);
+        var t = this.alarm.percentage();
+
+
+        this.body.x = this.x -20*tweenInOut(zloop(t, 30));
+        this.body.y = this.y;
+        this.body.ang = this.ang;
+        this.body.xScl = this.xScl;
+        this.body.yScl = this.yScl;
+
+
+       
+
+        this.rArm.ang = -0.2*tweenInOut(zloop(t, 30));
+        this.lArm.ang = +0.2*tweenInOut(zloop(t, 30));
+
+        this.rLeg.ang = -0.2 + 0.4*tweenInOut(zloop(t, 25));
+        this.lLeg.ang =  0.2 - 0.4*tweenInOut(zloop(t, 25));
+
+        this.pHead.ang = 0.2 - 0.4*tweenInOut(zloop(t, 10));
+
+        this.body.update(dt);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.rArm.draw(ctx);
+        this.lArm.draw(ctx);
+        this.rLeg.draw(ctx);
+        this.lLeg.draw(ctx);
+        this.body.draw(ctx);
+        this.pHead.draw(ctx);
+    }
+}
+
+class HouseWindow extends GameObject {
+    constructor(x, y){
+        super(x, y);
+        this.wid = 128;
+        this.hei = 200;
+
+        this.gridWid = this.wid*0.15;
+        this.gridHei = this.hei*0.1;
+
+        this.skyColors = [
+            new Color(19, 0, 36),
+            new Color(109, 49, 132),
+            new Color(157, 119, 209),
+            new Color(170, 233, 244),
+            new Color(35, 110, 227),
+            new Color(194, 116, 14),
+            new Color(61, 47, 35)
+        ];
+        this.skyColorAlarm = new Alarm(36000);
+        this.skyColorCSS = this.getSkyColor();
+
+        this.depth = 1000;
+    }
+
+    getSkyColor(dayPerc = this.getDayPerc()){
+        var index = this.skyColors.length * dayPerc;
+        var gradPerc = index - Math.floor(index);
+
+        console.log(index);
+        var color1 = this.skyColors[Math.floor(index)];
+        var color2 = this.skyColors[(Math.floor(index)+1)%this.skyColors.length];
+
+        this.skyColor = Color.getInterpol(color1, color2, gradPerc).toCSS();
+    }
+
+    getDayPerc(){
+        var now = new Date();
+        var hours = now.getHours();
+        return hours/24;
+    }
+
+    update(dt){
+        this.skyColorAlarm.update(dt);
+        if(this.skyColorAlarm.finished){
+           
+            this.getSkyColor();
+            this.skyColorAlarm.restart();
+        }
+
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+
+        ctx.fillStyle = this.skyColor;
+        ctx.fillRect(this.x, this.y, this.wid, this.hei);
+
+        // ctx.fillStyle = "rgb(52, 12, 63)"
+        // ctx.fillRect(this.x, this.y, this.wid, this.hei);
+
+        ctx.fillStyle = "rgb(0, 0, 0)";
+        ctx.fillRect(this.x + this.wid*0.5 - this.gridWid*0.5, this.y, this.gridWid, this.hei);
+        ctx.fillRect(this.x, this.y + this.hei*0.5 - this.gridHei*0.5, this.wid, this.gridHei);
+    }
+}
 
 class BigClock extends GameObject{
     constructor(x, y){
@@ -56,12 +207,31 @@ class BigClock extends GameObject{
         this.hei = 48*scl;
 
         this.sprite = new SpriteInstance(sprites[SPR.BIGCLOCK], x, y);
-        this.sprite.setScale(this.wid/this.sprite.getWidth(), this.hei/this.sprite.getHeight());
-        this.sprite.setOrigin(0.5, 0.5);
+        this.sprite.setScale(scl);
+        this.sprite.setOrigin(0.5, 1);
 
-        this.pendulum = new SpriteInstance(sprites[SPR.BIGCLOCK], x, y, 1);
-        this.pendulum.setScale(this.wid/this.sprite.getWidth(), this.hei/this.sprite.getHeight());
-        this.pendulum.setOrigin(0.5, 0.5);
+        this.body = new AnimationNode(SPR.BIGCLOCK);
+        this.body.x = x;
+        this.body.y = y;
+        this.body.setRelativePivot(0.5, 1);
+        this.body.setScale(scl, scl);
+
+        this.back = new AnimationNode(SPR.BIGCLOCK);
+
+        this.back.sprite.setFrame(2);
+        this.back.depth = 50;
+        this.back.x = 8;
+        this.back.y = 48;
+        this.back.setRelativePivot(0.5, 1);
+        this.body.addChild(this.back);
+
+        this.pendulum = new AnimationNode(SPR.BIGCLOCK);
+        this.pendulum.x = 8;
+        this.pendulum.y = 24;
+        this.pendulum.sprite.setFrame(1);
+        this.pendulum.setPivot(8,24);
+        this.pendulum.depth = 25;
+        this.body.addChild(this.pendulum);
 
         this.hovered = false;
 
@@ -69,9 +239,12 @@ class BigClock extends GameObject{
 
         this.swingAlarm = new Alarm(65);
         this.swingSide = 0;
+
+        this.hitCooldown = new Alarm(10);
     }
 
     swingPendulum(){
+        if(!this.hitCooldown.finished) return;
         this.swingAlarm.restart();
         this.swingSide++;
         this.swingSide %= 2;
@@ -81,31 +254,43 @@ class BigClock extends GameObject{
     update(dt){
         this.swingAlarm.update(dt);
         this.sprite.setPosition(this.x, this.y);
-        this.pendulum.setPosition(this.x, this.y);
+        this.body.update(dt);
+        this.hitCooldown.update(dt);
 
+        this.body.setPosition(this.x, this.y);
+
+        this.body.setScale(this.body.xScl, 10 + tweenOut(this.swingAlarm.percentage())*0.5);
 
         var swingDir = this.swingSide == 0 ? 1 : -1; 
         this.pendulum.setRotation((tweenInOut(this.swingAlarm.percentage())*swingDir + this.swingSide)*Math.PI/8     - Math.PI/16);
 
         if(!this.visible) return;
-        this.hovered = Area.pointInside(input.mouseX,input.mouseY, this.x - this.wid*0.5, this.y - this.hei*0.5, this.wid, this.hei);
+        this.hovered = this.sprite.pointInside(input.mouseX, input.mouseY);
 
 
         if(this.hovered && input.mouseState[0][1]){
-            SoundPlayer.play(SND.MEOW);
+            if(this.hitCooldown.finished){
+                this.swingPendulum();
+                SoundPlayer.play(SND.TICK);
+                this.hitCooldown.restart();
+            }
         }
+    }
+
+    pushDraw(ctx){
+        this.body.pushDraw();
     }
 
     draw(ctx){
         if(!this.visible) return;
 
-        this.sprite.setFrame(2);
-        this.sprite.draw(ctx);
+        // this.sprite.setFrame(2);
+        // this.sprite.draw(ctx);
 
-        this.pendulum.draw(ctx);
+        // this.pendulum.draw(ctx);
 
-        this.sprite.setFrame(0);
-        this.sprite.draw(ctx);
+        // this.sprite.setFrame(0);
+        // this.sprite.draw(ctx);
     }
 }
 
@@ -117,15 +302,20 @@ class FinishStar extends GameObject{
         this.hei = 64;
 
         this.sprite = new SpriteInstance(sprites[SPR.STAR], x, y);
-        this.sprite.setScale(this.wid/this.sprite.getWidth(), this.hei/this.sprite.getHeight());
+
+        this.scl = this.wid/this.sprite.getSprWidth();
+        this.sprite.setScale(this.scl);
         this.sprite.setOrigin(0.5, 0.5);
+
+
 
         this.hovered = false;
 
         this.visible = false;
         this.appear = false;
 
-        this.clickAlarm = new Alarm(10);
+        this.clickAlarm = new Alarm(60);
+        this.flipAct = new FlipActor(60);
     }
 
     update(dt){
@@ -133,14 +323,17 @@ class FinishStar extends GameObject{
         this.sprite.setPosition(this.x, this.y);
         this.sprite.setFrame(this.hovered ? 1: 0);
 
+        this.flipAct.update(dt);
+        this.sprite.setScale(this.scl*Math.cos(this.flipAct.phase*2), this.scl);
+
         if(!this.visible) return;
         if(!this.appear) return;
-        this.hovered = Area.pointInside(input.mouseX,input.mouseY, this.x - this.wid*0.5, this.y - this.hei*0.5, this.wid, this.hei);
-
+        this.hovered = this.sprite.pointInside(input.mouseX, input.mouseY);
 
         if(this.hovered && input.mouseState[0][1] && this.clickAlarm.finished){
             SoundPlayer.play(SND.MEOW);
             this.clickAlarm.restart();
+            this.flipAct.flip();
         }
     }
 

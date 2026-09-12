@@ -264,12 +264,11 @@ class ParticleSprite extends Particle{
   constructor(x, y, life, sprite){
     super(x, y, life);
     
+    this.sprite = new SpriteInstance(sprite, this.x, this.y);
+
     this.scl = 1;
     this.sclSpd = 0;
 
-    this.sprite = sprite;
-    this.xOffset = 0;
-    this.yOffset = 0;
     this.img = 0;
     this.imgSpd = 0;
 
@@ -289,6 +288,11 @@ class ParticleSprite extends Particle{
     } else if (this.alphaMode == 2){
       this.alpha = tweenIn(1-Math.abs((ratio*2)-1));
     }
+
+    this.sprite.setFrame(this.img);
+    this.sprite.setScale(this.scl, this.scl);
+    this.sprite.setAlpha(this.alpha);
+    this.sprite.setPosition(this.x, this.y);
   }
 
   update(dt){
@@ -301,11 +305,7 @@ class ParticleSprite extends Particle{
   }
 
   draw(ctx){
-   
-    var alpha = ctx.globalAlpha;
-    ctx.globalAlpha = this.alpha;
-    this.sprite.drawExtRelative(this.x, this.y, Math.floor(this.img)%this.sprite.getImgNum() , this.scl, this.scl, this.angle, this.xOffset, this.yOffset);
-    ctx.globalAlpha = alpha;
+    this.sprite.draw(ctx);
   }
 }
 
@@ -351,8 +351,7 @@ function particleClick(x, y, scl = 5){
 function particleExplosion(x, y, scl = 3){
   var life = 40;
   var part = new ParticleSprite(x, y, life, sprites[SPR.EXPLOSION]);
-  part.xOffset = 0.5;
-  part.yOffset = 0.5;
+  part.sprite.setOrigin(0.5, 0.5);
   part.scl = scl;
   part.img = 0;
   part.imgSpd = 18/(life+2);
@@ -361,6 +360,20 @@ function particleExplosion(x, y, scl = 3){
 
   return part;
 }
+
+function particleCup(x, y, scl = 5){
+  var life = 100;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.CUP]);
+  part.sprite.setOrigin(0.5, 0.5);
+  part.scl = scl;
+  part.img = 0;
+  part.alphaMode = 1;
+
+  part.depth = -3000;
+
+  return part;
+}
+
 
 
 

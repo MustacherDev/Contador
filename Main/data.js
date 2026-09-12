@@ -36,7 +36,6 @@ class MustAudio {
     this.loop(false);
   }
 
-
   volume(volume) {
     this.vol = volume;
     this.howl.volume(volume);
@@ -47,6 +46,188 @@ class MustAudio {
     this.howl.loop(loop);
   }
 }
+
+class SoundPlayer {
+
+  static play(soundInd) {
+    sounds[soundInd].howl.volume(sounds[soundInd].vol);
+    //console.log(sounds[soundInd].howl.volume() + " HOWLER VOLUME ");
+    return sounds[soundInd].howl.play();
+  }
+
+  static pause(soundInd, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.pause();
+    } else {
+      sounds[soundInd].howl.pause(soundId);
+    }
+  }
+
+  static stop(soundInd, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.stop();
+    } else {
+      sounds[soundInd].howl.stop(soundId);
+    }
+  }
+
+  // MAKES A SOUND FADE VOLUME TO 0 AND THEN STOP
+  static fadingStop(soundInd, duration = 1000, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
+      sounds[soundInd].howl.once('fade', () => {
+        let ind = this.allMusicPlaying.indexOf(soundId);
+        if(ind != -1){
+          this.allMusicPlaying.splice(ind, 1);
+        }
+        sounds[soundInd].howl.stop();
+      });
+    } else {
+      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration, soundId).once('fade', () => {
+        let ind = this.allMusicPlaying.indexOf(soundId);
+        if(ind != -1){
+          this.allMusicPlaying.splice(ind, 1);
+        }
+        sounds[soundInd].howl.stop(soundId);
+      });
+    }
+  }
+
+  static fadeOut(soundInd, duration = 1000, soundId = -1) {
+    if (soundId == -1) {
+      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
+    }
+  }
+
+  
+  static fadeIn(soundInd, duration = 2000, startVol = 0){
+    if(soundInd == -1) return;
+
+    sounds[soundInd].howl.volume(startVol);
+    console.log(sounds[soundInd].howl.volume() + " HOWLER VOLUME ");
+    sounds[soundInd].howl.fade(startVol,sounds[soundInd].vol, duration);
+  }
+
+  static fadeRange(soundInd, startVol, endVol,  duration = 2000){
+    if(soundInd == -1) return;
+
+    sounds[soundInd].howl.volume(startVol);
+    sounds[soundInd].howl.fade(startVol,endVol, duration);
+  }
+
+  static fadeToVolume(soundInd, endVol,  duration = 2000){
+    if(soundInd == -1) return;
+
+    const currentVol = sounds[soundInd].howl.volume();
+
+    const startVol = currentVol === undefined
+        ? sounds[soundInd].vol
+        : currentVol;
+
+    sounds[soundInd].howl.fade(startVol, endVol, duration);
+  }
+
+
+
+  /////// MUSIC STUFF
+  // WHILE SOUNDS CAN BE PLAYED TOGETHER, MUSIC IS A TYPE OF SOUND
+  // THAT CAN'T HAVE MULTIPLE BEING PLAYED TOGETHER, ONLY ONE AT A TIME
+
+  //static currentMusic = -1;
+  static channelNum = 4;
+  static musicChannels = [-1, -1, -1, -1];
+  static allMusicPlaying = [];
+
+  static getMusic(channel = 0){
+    return this.musicChannels[channel];
+  }
+
+  static setMusic(musicInd, channel = 0){
+    this.musicChannels[channel] = musicInd; 
+  }
+
+  static playMusic(musicInd, channel = 0) {
+    var curMusic = this.getMusic(channel);
+
+    if (musicInd == -1) return;
+    if (musicInd == curMusic) return;
+
+    if (curMusic != -1) {
+      this.fadingStop(curMusic, 2000);
+    }
+
+
+    if(this.allMusicPlaying.includes(musicInd)) {
+      this.fadeIn(musicInd);
+      this.setMusic(musicInd, channel);
+      return;
+    }
+
+
+
+    this.play(musicInd);
+    this.allMusicPlaying.push(musicInd);
+    this.setMusic(musicInd, channel);
+  }
+
+  static getTimestamp(soundInd){
+    if(soundInd == -1) return 0;
+    return sounds[soundInd].howl.seek();
+  }
+
+  static setTimestamp(soundInd, timestamp){
+    if(soundInd == -1) return false;
+    sounds[soundInd].howl.seek(timestamp);
+    return true;
+  }
+
+
+  static fadeMusic(musicInd, duration = 2000, channel = 0) {
+    if (musicInd == -1) return;
+
+    var curMusic = this.getMusic(channel);
+
+
+    this.fadeOut(musicInd, duration);
+    if (curMusic == musicInd) {
+      this.setMusic(-1, channel);
+    }
+  }
+
+  static fadeMusicStop(musicInd, duration = 2000, channel = 0) {
+    if (musicInd == -1) return;
+
+    var curMusic = this.getMusic(channel);
+
+
+    this.fadingStop(musicInd, duration);
+    if (curMusic == musicInd) {
+      this.setMusic(-1, channel);
+    }
+  }
+
+  static stopMusic(musicInd, channel = 0) {
+    if (musicInd == -1) return;
+
+    this.stop(musicInd);
+    if (this.getMusic(channel) == musicInd) {
+      this.setMusic(-1, channel);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class Assets{ 
@@ -140,116 +321,7 @@ class Assets{
 
 
 
-class SoundPlayer {
 
-  static play(soundInd) {
-    sounds[soundInd].howl.volume(sounds[soundInd].vol);
-    return sounds[soundInd].howl.play();
-  }
-
-  static pause(soundInd, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.pause();
-    } else {
-      sounds[soundInd].howl.pause(soundId);
-    }
-  }
-
-  static stop(soundInd, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.stop();
-    } else {
-      sounds[soundInd].howl.stop(soundId);
-    }
-  }
-
-  // MAKES A SOUND FADE VOLUME TO 0 AND THEN STOP
-  static fadingStop(soundInd, duration = 1000, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
-      sounds[soundInd].howl.once('fade', () => {
-        sounds[soundInd].howl.stop();
-      });
-    } else {
-      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration, soundId).once('fade', () => {
-        sounds[soundInd].howl.stop(soundId);
-      });
-    }
-  }
-
-  
-  static fadeIn(soundInd, duration = 2000, startVol = 0){
-    if(soundInd == -1) return;
-
-    sounds[soundInd].howl.fade(startVol,sounds[soundInd].vol, duration);
-  }
-
-  static fadeRange(soundInd, startVol, endVol,  duration = 2000){
-    if(soundInd == -1) return;
-
-    sounds[soundInd].howl.fade(startVol,endVol, duration);
-  }
-
-  static fadeToVolume(soundInd, endVol,  duration = 2000){
-    if(soundInd == -1) return;
-
-    var startVol = sounds[soundInd].howl.volume() || sounds[soundInd].vol;
-    sounds[soundInd].howl.fade(startVol, endVol, duration);
-  }
-
-
-
-  /////// MUSIC STUFF
-  // WHILE SOUNDS CAN BE PLAYED TOGETHER, MUSIC IS A TYPE OF SOUND
-  // THAT CAN'T HAVE MULTIPLE BEING PLAYED TOGETHER, ONLY ONE AT A TIME
-
-  //static currentMusic = -1;
-  static channelNum = 4;
-  static musicChannels = [-1, -1, -1, -1];
-
-  static getMusic(channel = 0){
-    return this.musicChannels[channel];
-  }
-
-  static setMusic(musicInd, channel = 0){
-    this.musicChannels[channel] = musicInd; 
-  }
-
-  static playMusic(musicInd, channel = 0) {
-    var curMusic = this.getMusic(channel);
-
-    if (musicInd == -1) return;
-    if (musicInd == curMusic) return;
-
-    if (curMusic != -1) {
-      this.fadingStop(curMusic, 2000);
-    }
-
-    this.play(musicInd);
-    this.setMusic(musicInd, channel);
-  }
-
-
-  static fadeMusic(musicInd, duration = 2000, channel = 0) {
-    if (musicInd == -1) return;
-
-    var curMusic = this.getMusic(channel);
-
-    this.fadingStop(musicInd, duration);
-    if (curMusic == musicInd) {
-      this.setMusic(-1, channel);
-    }
-  }
-
-  static stopMusic(musicInd, channel = 0) {
-    if (musicInd == -1) return;
-
-    this.stop(musicInd);
-    if (this.getMusic(channel) == musicInd) {
-      this.setMusic(-1, channel);
-    }
-  }
-}
 
 
 
@@ -272,6 +344,12 @@ Assets.addSound("GOAT", "Sounds/goat.wav");
 Assets.addSound("BOSSAUSADA", "Sounds/Bossa Usadinha.mp3",{loop:true});
 Assets.addSound("MUSICDRAMA", "Sounds/The Four Seasons.mp3");
 Assets.addSound("MEOW", "Sounds/meow.wav");
+Assets.addSound("KEYPRESS1", "Sounds/keyPress1.mp3");
+Assets.addSound("KEYPRESS2", "Sounds/keyPress2.mp3");
+Assets.addSound("KEYPRESS3", "Sounds/keyPress3.mp3");
+Assets.addSound("KEYRELEASE1", "Sounds/keyRelease1.mp3");
+Assets.addSound("KEYRELEASE2", "Sounds/keyRelease2.mp3");
+Assets.addSound("KEYRELEASE3", "Sounds/keyRelease3.mp3");
 
 Assets.addSprite("PORTRAITS", "Sprites/portrait2.png", {wid:256, hei:256, cols:6, rows:6});
 Assets.addSprite("PORTRAITS2", "Sprites/portrait3.png", {wid:256, hei:256, cols:6, rows:3});
@@ -286,3 +364,9 @@ Assets.addSprite("TROPHIES", "Sprites/trophies.png", {wid:16, hei:16, cols:6, ro
 Assets.addSprite("KNOWLEDGE", "Sprites/knowledge.png", {wid:640, hei:360, cols:3, rows:5});
 Assets.addSprite("STAR", "Sprites/star.png", {wid:128, hei:128, cols:2, rows:1});
 Assets.addSprite("BIGCLOCK", "Sprites/bigClock.png", {wid:16, hei:48, cols:3, rows:1});
+Assets.addSprite("PBODY", "Sprites/purpledude/pBody.png");
+Assets.addSprite("PHEAD", "Sprites/purpledude/pHead.png");
+Assets.addSprite("PLEG", "Sprites/purpledude/pLeg.png");
+Assets.addSprite("PARM", "Sprites/purpledude/pArm.png");
+Assets.addSprite("CUP", "Sprites/cup.png", {wid:32, hei:32, cols:2, rows:1});
+Assets.addSprite("CUPITEM", "Sprites/cupItems.png", {wid:16, hei:16, cols:2, rows:1});

@@ -202,12 +202,17 @@ class SpriteInstance {
     }
   }
 
-  getWidth(){
-    return this.sprite.width;
-  }
+  getSprWidth(){ return this.sprite.width;}
+  getSprHeight(){ return this.sprite.height;}
+  getWidth(){ return this.sprite.width * this.transform.xScl;}
+  getHeight(){ return this.sprite.height * this.transform.yScl;}
+  getLeft(){ return this.transform.x - this.getWidth()*this.transform.relXOff;}
+  getTop(){ return this.transform.y - this.getHeight()*this.transform.relYOff;}
+  getRight(){ return this.getLeft() + this.getWidth();}
+  getBottom(){ return this.getTop() + this.getHeight();}
 
-  getHeight(){
-    return this.sprite.height;
+  pointInside(px, py){
+    return Area.pointInside( px, py, this.getLeft(), this.getTop(), this.getWidth(), this.getHeight());
   }
 
   // TRANSFORM METHODS
