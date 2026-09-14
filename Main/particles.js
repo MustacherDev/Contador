@@ -292,6 +292,7 @@ class ParticleSprite extends Particle{
     this.sprite.setFrame(this.img);
     this.sprite.setScale(this.scl, this.scl);
     this.sprite.setAlpha(this.alpha);
+    this.sprite.setRotation(this.angle);
     this.sprite.setPosition(this.x, this.y);
   }
 
@@ -362,14 +363,29 @@ function particleExplosion(x, y, scl = 3){
 }
 
 function particleCup(x, y, scl = 5){
-  var life = 100;
+  var life = 250;
   var part = new ParticleSprite(x, y, life, sprites[SPR.CUP]);
   part.sprite.setOrigin(0.5, 0.5);
   part.scl = scl;
   part.img = 0;
-  part.alphaMode = 1;
+  part.alphaMode = 3;
 
   part.depth = -3000;
+  
+
+  return part;
+}
+
+function particleCupItem(x, y, scl = 5){
+  var life = 250;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.CUPITEM]);
+  part.sprite.setOrigin(0.5, 0.5);
+  part.scl = scl;
+  part.img = 0;
+  part.alphaMode = 3;
+
+  part.depth = -2000;
+  
 
   return part;
 }

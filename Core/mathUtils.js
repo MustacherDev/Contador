@@ -141,6 +141,18 @@ function zloop(percentage, loopCount) {
 }
 
 
+function molder(val, valMin, valMax, outMin, outMax){
+    var perc = (val-valMin)/(valMax-valMin);
+    return outMin + (outMax-outMin)*perc;
+}
+
+
+
+
+
+
+
+
 // COLLISION DETECTION FUNCTIONS
 class Area{
     static pointInside(px, py, areaX, areaY, areaWid, areaHei){

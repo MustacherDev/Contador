@@ -28,6 +28,38 @@ class BaseObject{
     }
 }
 
+class ManagerObject extends BaseObject{
+    constructor(x, y){
+        super(x, y);
+
+        this.objects = [];
+    }
+
+    addObject(obj){
+        this.objects.push(obj);
+    }
+
+    updateObjects(dt){
+        for(var obj of this.objects){
+            obj.update(dt);
+        }
+    }
+
+    pushDrawObjects(){
+        for(var obj of this.objects){
+            obj.pushDraw();
+        }
+    }
+
+    pushDraw(){
+        this.pushDrawObjects();
+    }
+
+    update(dt){
+        this.updateObjects(dt);
+    }
+}
+
 class GameObject extends BaseObject{
     constructor(x, y){
         super(x, y);
@@ -130,6 +162,195 @@ class PurpleDude extends GameObject {
         this.body.draw(ctx);
         this.pHead.draw(ctx);
     }
+}
+
+class SpotusGuy extends GameObject {
+    constructor(x, y) {
+        super(x, y); 
+        this.ang = 0;
+        this.xScl = 4;
+        this.yScl = 4;
+
+        this.body = new AnimationNode(SPR.SPOTUSBODY);
+        this.body.x = x;
+        this.body.y = y;
+        this.body.setRelativePivot(0.5,0.5);
+
+        this.spots = new AnimationNode(SPR.SPOTUSBODY);
+        this.spots.x = 40;
+        this.spots.y = 40;
+        this.spots.sprite.setFrame(1);
+        this.spots.setRelativePivot(0.5,0.5);
+        this.body.addChild(this.spots);
+
+        this.hat = new AnimationNode(SPR.SPOTUSHAT);
+        this.hat.x = 40;
+        this.hat.y = 40;
+        this.hat.setPivot(24,88);
+        this.body.addChild(this.hat);
+
+        
+        this.lLeg = new AnimationNode(SPR.SPOTUSLEG);
+        this.lLeg.x = 52;
+        this.lLeg.y = 72;
+        this.lLeg.setPivot(18,2);
+        this.lLeg.depth = 10;
+        this.lLeg.yScl = 2;
+        this.body.addChild(this.lLeg);
+
+        this.lFoot = new AnimationNode(SPR.SPOTUSFOOT);
+        this.lFoot.x = 17;
+        this.lFoot.y = 79;
+        this.lFoot.setPivot(4,4);
+        this.lFoot.depth = -5;
+        this.lLeg.addChild(this.lFoot);
+
+        this.rLeg = new AnimationNode(SPR.SPOTUSLEG);
+        this.rLeg.x = 32;
+        this.rLeg.y = 74;
+        this.rLeg.depth = 10;
+        this.rLeg.setPivot(18,2);
+        this.rLeg.xScl = -1;
+        this.rLeg.yScl = 2;
+        this.body.addChild(this.rLeg);
+
+        this.rFoot = new AnimationNode(SPR.SPOTUSFOOT);
+        this.rFoot.x = 17;
+        this.rFoot.y = 79;
+        this.rFoot.setPivot(4,4);
+        this.rFoot.depth = -5;
+
+        this.rLeg.addChild(this.rFoot);
+
+
+
+        this.face = new AnimationNode(SPR.SPOTUSFACE);
+        this.face.x = 40;
+        this.face.y = 40;
+        this.face.setRelativePivot(0.5,0.5);
+        this.body.addChild(this.face);
+
+        
+
+        this.alarm = new Alarm(2400);
+        this.alarm.loop = true;
+
+        this.reactionAlarm = new Alarm(150);
+
+        this.state = "idle";
+        this.happyLevel = 0;
+
+        this.legMult = 2;
+        
+    }
+
+    setState(state){
+        switch(state){
+            case "idle":
+                this.face.sprite.setFrame(this.happyLevel);
+                break;
+            case "impressed":
+                this.face.sprite.setFrame(4);
+                this.reactionAlarm.start();
+                break;
+            case "disgusted":
+                this.face.sprite.setFrame(5);
+                this.reactionAlarm.start();
+                break;
+        }
+    }
+
+    
+
+    triggerImpress(){
+        this.setState("impressed");
+    }
+
+    triggerDisgust(){
+        this.setState("disgusted");
+    }
+
+
+
+
+    setDepth(depth){
+        this.depth = depth;
+        this.body.depth = depth;
+    }
+
+    update(dt){
+        if(!this.active) return;
+        this.alarm.update(dt);
+        var t = this.alarm.percentage();
+
+
+
+        this.body.ang = this.ang;
+        this.body.xScl = this.xScl;
+        this.body.yScl = this.yScl;
+
+
+        var tiptoeFact = tweenInOut(zloop(t, 8));
+
+ 
+
+        //this.legMult = tiptoeFact*2;
+
+
+        this.body.x = this.x -20*tweenInOut(zloop(t, 18));
+        this.body.y = this.y + 15*tiptoeFact - this.lLeg.sprite.getSprHeight()*this.lLeg.worldYScl; 
+        this.rFoot.ang = 0.25 -0.5*tiptoeFact;
+        this.lFoot.ang =  0.25 -0.5*tiptoeFact;
+
+        this.lLeg.yScl = this.legMult;
+        this.rLeg.yScl = this.legMult;
+        this.rFoot.yScl = 1/this.legMult;
+        this.lFoot.yScl = 1/this.legMult;
+
+        this.reactionAlarm.update(dt);
+        if(this.reactionAlarm.finished){
+            this.setState("idle");
+            this.reactionAlarm.stop();
+        }
+
+        this.hat.ang = -Math.PI/4 + 0.125 -0.25*tweenInOut(zloop(t, 13));
+
+
+
+        this.body.update(dt);
+
+    }
+
+    pushDraw(){
+        if(!this.visible) return;
+        this.body.pushDraw();
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+    }
+}
+
+class Poster extends GameObject{
+    constructor(x, y){
+        super(x, y);
+
+        this.scl = 5;
+
+        this.sprite = new SpriteInstance(sprites[SPR.POSTERS], x, y);
+        this.sprite.setScale(this.scl);
+        this.sprite.setOrigin(0.5, 0.5);
+    }
+
+    update(dt){
+        this.sprite.setPosition(this.x, this.y);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.sprite.draw(ctx);
+    }
+
 }
 
 class HouseWindow extends GameObject {

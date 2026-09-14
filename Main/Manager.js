@@ -287,8 +287,11 @@ class GameManager{
         var dateText = now.toLocaleDateString();
         var rng = new Random(dateText);
 
-        var intros = [0, 1, 2];
-        var introDuration = [400, 400, 500];
+        var intros = [0, 1, 2, 3];
+        var introDuration = [400, 400, 500, 700];
+
+        var mdx = canvasWidth*0.5;
+        var mdy = canvasHeight*0.5;
 
 
 
@@ -297,6 +300,10 @@ class GameManager{
 
         this.calendarDashboard = new CalendarDashboard(introDuration[intro]);
 
+        var cupDemo = new CupGameDemo(mdx, mdy*1.75);
+
+        
+        
         switch(intro){
             case 0:
                 this.addObject(pillDemo);
@@ -307,10 +314,13 @@ class GameManager{
             case 2:
                 this.addObject(goatQuote);
                 break;
+            case 3:
+                this.addObject(cupDemo);
+                break;
         }
 
 
-        this.roomSetupIndex = rng.int(0, 3);
+        this.roomSetupIndex = rng.int(0, 4);
 
         this.setupRooms(this.roomSetupIndex, false);
     }
@@ -409,10 +419,15 @@ class GameManager{
                 break;
             case 4:
                 room = this.createRoom(-1, 0);
-                this.cupGame = new CupGame(room.getX() + mdx, room.getY() + mdy);
+                this.cupGame = new CupGame(room.getX() + mdx, room.getY() + mdy*1.25);
+                room.ambientMusic = SND.MUSICSPOTUS;
+                room.stopMusic = false;
                 room.addObject(this.cupGame);
                 break;
         }
+
+        this.roomViewer.xSlot = 0;
+        this.roomViewer.xSlotPrev = 0;
     }
 
 
@@ -476,9 +491,7 @@ class GameManager{
 
 
 
-        for(var i = 0; i < this.particles.length; i++){
-            this.particles[i].update(dt);
-        }   
+  
 
         for(var i = 0; i < this.objects.length; i++){
             this.objects[i].update(dt);
@@ -487,6 +500,10 @@ class GameManager{
          for(var i = 0; i < this.objects.length; i++){
             this.objects[i].pushDraw(ctx);
         }
+
+        for(var i = 0; i < this.particles.length; i++){
+            this.particles[i].update(dt);
+        }   
 
         for(var room of this.rooms){
             room.setActive(this.roomViewer.isRoomActive(room));

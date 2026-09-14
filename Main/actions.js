@@ -132,10 +132,12 @@ class CodeAction extends Action{
     constructor(method){
         super();
         this.method = method;
+
+        this.aborted = false;
     }
 
     start(){
-        this.method();
+        this.aborted = !(this.method() ?? true);
     }
 }
 

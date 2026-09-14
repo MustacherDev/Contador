@@ -17,8 +17,6 @@ class StateFlow{
       this.progress = 0;
       this.stateTimer = 0;
     }
-
-
   }
 
   update(dt){
