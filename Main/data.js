@@ -7,7 +7,6 @@ const SND = new Enum();
 var sounds = [];
 
 
-
 class MustTexture{
   constructor(path){
     this.path = path;
@@ -46,187 +45,6 @@ class MustAudio {
     this.howl.loop(loop);
   }
 }
-
-class SoundPlayer {
-
-  static play(soundInd) {
-    sounds[soundInd].howl.volume(sounds[soundInd].vol);
-    //console.log(sounds[soundInd].howl.volume() + " HOWLER VOLUME ");
-    return sounds[soundInd].howl.play();
-  }
-
-  static pause(soundInd, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.pause();
-    } else {
-      sounds[soundInd].howl.pause(soundId);
-    }
-  }
-
-  static stop(soundInd, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.stop();
-    } else {
-      sounds[soundInd].howl.stop(soundId);
-    }
-  }
-
-  // MAKES A SOUND FADE VOLUME TO 0 AND THEN STOP
-  static fadingStop(soundInd, duration = 1000, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
-      sounds[soundInd].howl.once('fade', () => {
-        let ind = this.allMusicPlaying.indexOf(soundId);
-        if(ind != -1){
-          this.allMusicPlaying.splice(ind, 1);
-        }
-        sounds[soundInd].howl.stop();
-      });
-    } else {
-      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration, soundId).once('fade', () => {
-        let ind = this.allMusicPlaying.indexOf(soundId);
-        if(ind != -1){
-          this.allMusicPlaying.splice(ind, 1);
-        }
-        sounds[soundInd].howl.stop(soundId);
-      });
-    }
-  }
-
-  static fadeOut(soundInd, duration = 1000, soundId = -1) {
-    if (soundId == -1) {
-      sounds[soundInd].howl.fade(sounds[soundInd].vol, 0, duration);
-    }
-  }
-
-  
-  static fadeIn(soundInd, duration = 2000, startVol = 0){
-    if(soundInd == -1) return;
-
-    sounds[soundInd].howl.volume(startVol);
-    console.log(sounds[soundInd].howl.volume() + " HOWLER VOLUME ");
-    sounds[soundInd].howl.fade(startVol,sounds[soundInd].vol, duration);
-  }
-
-  static fadeRange(soundInd, startVol, endVol,  duration = 2000){
-    if(soundInd == -1) return;
-
-    sounds[soundInd].howl.volume(startVol);
-    sounds[soundInd].howl.fade(startVol,endVol, duration);
-  }
-
-  static fadeToVolume(soundInd, endVol,  duration = 2000){
-    if(soundInd == -1) return;
-
-    const currentVol = sounds[soundInd].howl.volume();
-
-    const startVol = currentVol === undefined
-        ? sounds[soundInd].vol
-        : currentVol;
-
-    sounds[soundInd].howl.fade(startVol, endVol, duration);
-  }
-
-
-
-  /////// MUSIC STUFF
-  // WHILE SOUNDS CAN BE PLAYED TOGETHER, MUSIC IS A TYPE OF SOUND
-  // THAT CAN'T HAVE MULTIPLE BEING PLAYED TOGETHER, ONLY ONE AT A TIME
-
-  //static currentMusic = -1;
-  static channelNum = 4;
-  static musicChannels = [-1, -1, -1, -1];
-  static allMusicPlaying = [];
-
-  static getMusic(channel = 0){
-    return this.musicChannels[channel];
-  }
-
-  static setMusic(musicInd, channel = 0){
-    this.musicChannels[channel] = musicInd; 
-  }
-
-  static playMusic(musicInd, channel = 0) {
-    var curMusic = this.getMusic(channel);
-
-    if (musicInd == -1) return;
-    if (musicInd == curMusic) return;
-
-    if (curMusic != -1) {
-      this.fadingStop(curMusic, 2000);
-    }
-
-
-    if(this.allMusicPlaying.includes(musicInd)) {
-      this.fadeIn(musicInd);
-      this.setMusic(musicInd, channel);
-      return;
-    }
-
-
-
-    this.play(musicInd);
-    this.allMusicPlaying.push(musicInd);
-    this.setMusic(musicInd, channel);
-  }
-
-  static getTimestamp(soundInd){
-    if(soundInd == -1) return 0;
-    return sounds[soundInd].howl.seek();
-  }
-
-  static setTimestamp(soundInd, timestamp){
-    if(soundInd == -1) return false;
-    sounds[soundInd].howl.seek(timestamp);
-    return true;
-  }
-
-
-  static fadeMusic(musicInd, duration = 2000, channel = 0) {
-    if (musicInd == -1) return;
-
-    var curMusic = this.getMusic(channel);
-
-
-    this.fadeOut(musicInd, duration);
-    if (curMusic == musicInd) {
-      this.setMusic(-1, channel);
-    }
-  }
-
-  static fadeMusicStop(musicInd, duration = 2000, channel = 0) {
-    if (musicInd == -1) return;
-
-    var curMusic = this.getMusic(channel);
-
-
-    this.fadingStop(musicInd, duration);
-    if (curMusic == musicInd) {
-      this.setMusic(-1, channel);
-    }
-  }
-
-  static stopMusic(musicInd, channel = 0) {
-    if (musicInd == -1) return;
-
-    this.stop(musicInd);
-    if (this.getMusic(channel) == musicInd) {
-      this.setMusic(-1, channel);
-    }
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -356,6 +174,8 @@ Assets.addSound("UFO", "Sounds/UFO.wav");
 Assets.addSound("CHICKEN", "Sounds/chicken.mp3");
 Assets.addSound("BOING", "Sounds/boing.wav");
 Assets.addSound("MUSICSPOTUS", "Sounds/Spotus Quest.mp3",{loop:true});
+Assets.addSound("HEARTHIT", "Sounds/heartHit.wav");
+Assets.addSound("HEARTGRAZE", "Sounds/heartGraze.wav");
 
 Assets.addSprite("PORTRAITS", "Sprites/portrait2.png", {wid:256, hei:256, cols:6, rows:6});
 Assets.addSprite("PORTRAITS2", "Sprites/portrait3.png", {wid:256, hei:256, cols:6, rows:3});
@@ -375,12 +195,18 @@ Assets.addSprite("PHEAD", "Sprites/purpledude/pHead.png");
 Assets.addSprite("PLEG", "Sprites/purpledude/pLeg.png");
 Assets.addSprite("PARM", "Sprites/purpledude/pArm.png");
 Assets.addSprite("CUP", "Sprites/cup.png", {wid:34, hei:34, cols:2, rows:2});
-Assets.addSprite("CUPITEM", "Sprites/cupItems.png", {wid:16, hei:16, cols:5, rows:4});
+Assets.addSprite("CUPITEM", "Sprites/cupItems.png", {wid:16, hei:16, cols:4, rows:9});
 Assets.addSprite("BOMB", "Sprites/bombs.png", {wid:32, hei:32, cols:4, rows:1});
 Assets.addSprite("SPOTUSBODY", "Sprites/ballguy/body.png", {wid:80, hei:80, cols:2, rows:1});
 Assets.addSprite("SPOTUSFACE", "Sprites/ballguy/faces.png", {wid:80, hei:80, cols:2, rows:3});
-Assets.addSprite("SPOTUSHAT", "Sprites/ballguy/tophat.png");
+Assets.addSprite("SPOTUSHAT", "Sprites/ballguy/tophat.png", {wid:48, hei:48, cols:3, rows:1});
 Assets.addSprite("SPOTUSLEG", "Sprites/ballguy/leg.png");
 Assets.addSprite("SPOTUSFOOT", "Sprites/ballguy/foot.png");
 Assets.addSprite("POSTERS", "Sprites/poster.png",{wid:48, hei:64, cols:2, rows:1});
 Assets.addSprite("SIGN", "Sprites/sign.png");
+Assets.addSprite("XMASLIGHT", "Sprites/lights.png");
+Assets.addSprite("HEART", "Sprites/heart.png", {wid:16, hei:16, cols:8, rows:1});
+Assets.addSprite("OMEGABULLETS", "Sprites/bullets.png", {wid:32, hei:32, cols:4, rows:1});
+Assets.addSprite("PIPE", "Sprites/pipe.png");
+Assets.addSprite("CLOCKPOINTER", "Sprites/clockPointer.png", {wid:12, hei:3, cols:1, rows:3});
+Assets.addSprite("SKYPROPS", "Sprites/skyProps.png", {wid:32, hei:32, cols:4, rows:1});

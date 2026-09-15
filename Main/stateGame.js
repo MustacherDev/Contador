@@ -1,16 +1,16 @@
-function stateMenuSetup(){
+function stateGameSetup(){
 }
 
-function stateMenu(dt){
+function stateGame(dt){
     manager.update(dt);
     manager.pushDraw();
 
-    stateMenuDraw(ctx, manager.mainCam);
+    stateGameDraw(ctx, manager.mainCam);
 
     manager.mainCam.lateUpdate(dt);
 }
 
-function stateMenuDraw(ctx, cam = mainCam){;
+function stateGameDraw(ctx, cam = mainCam){;
 
     // manager.drawingCam = cam;
     

@@ -21,6 +21,19 @@ class BoundingBox {
       );
     }
 
+    // Simulates if the box will colide with a determined offset
+    placeMeeting(other, x = 0, y = 0){
+      var xx = this.x;
+      var yy = this.y;
+      this.x += x;
+      this.y += y;
+
+      var result = this.intersects(other);
+      this.x = xx;
+      this.y = yy;
+      return result;
+    }
+
     getTop(){ return this.y - this.originY*this.height;}
     getBottom(){ return this.getTop() + this.height;}
     getLeft(){ return this.x - this.originX*this.width;}

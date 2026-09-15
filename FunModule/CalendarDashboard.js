@@ -1,4 +1,53 @@
 
+class CalendarUtils{
+    static weekdays = [
+            "Domingo",
+            "Segunda-feira",
+            "Terça-feira",
+            "Quarta-feira",
+            "Quinta-feira",
+            "Sexta-feira",
+            "Sábado"
+        ];
+
+
+    static getTimeString() {
+        const now = new Date();
+
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        const ss = String(now.getSeconds()).padStart(2, "0");
+
+        return `${hh}:${mm}:${ss}`;
+    }
+
+    static getDateString() {
+
+        const now = new Date();
+
+        const weekday =
+            this.weekdays[now.getDay()];
+
+        return `${weekday} ${now.toLocaleDateString()}`;
+    }
+
+    static getWeekdayString(){
+        const now = new Date();
+
+        const weekday =
+            this.weekdays[now.getDay()];
+        return weekday;
+    }
+
+    static getYearDays() {
+        var now = new Date();
+        const oneJan = new Date(now.getFullYear(), 0, 1);
+        const numberOfDays = Math.floor((now - oneJan) / (24 * 60 * 60 * 1000));
+        return numberOfDays;
+    }
+}
+
+
 class CalendarDashboard extends BaseObject {
     constructor(introDuration = 400) {
         super(canvasWidth / 2, canvasHeight / 2);
@@ -31,15 +80,7 @@ class CalendarDashboard extends BaseObject {
             {text: "APROVEITE O DIA", tags: ["kind"]},
         ];
 
-        this.weekdays = [
-            "Domingo",
-            "Segunda-feira",
-            "Terça-feira",
-            "Quarta-feira",
-            "Quinta-feira",
-            "Sexta-feira",
-            "Sábado"
-        ];
+        
 
         for(var birthday of this.birthdays){
             birthday.remaining = this.getRemainingTime(birthday).days;
@@ -183,36 +224,14 @@ class CalendarDashboard extends BaseObject {
         return order;
     }
 
-    getTimeString() {
-        const now = new Date();
-
-        const hh = String(now.getHours()).padStart(2, "0");
-        const mm = String(now.getMinutes()).padStart(2, "0");
-        const ss = String(now.getSeconds()).padStart(2, "0");
-
-        return `${hh}:${mm}:${ss}`;
-    }
+ 
 
     
 
 
-    getDateString() {
+    
 
-        const now = new Date();
 
-        const weekday =
-            this.weekdays[now.getDay()];
-
-        return `${weekday} ${now.toLocaleDateString()}`;
-    }
-
-    getWeekdayString(){
-        const now = new Date();
-
-        const weekday =
-            this.weekdays[now.getDay()];
-        return weekday;
-    }
 
     onStateChange(state){
         if(state == 1){
@@ -273,12 +292,12 @@ class CalendarDashboard extends BaseObject {
             ctx.font = "32px Fixedsys";
             ctx.textAlign = "left";
             ctx.fillStyle = "rgb(180,180,180)";
-            ctx.fillText(this.getDateString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 40);
+            ctx.fillText(CalendarUtils.getDateString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 40);
             
             ctx.textAlign = "left";
             ctx.font = "48px Fixedsys";
             ctx.fillStyle = "rgb(255,255,255)";
-            ctx.fillText(this.getTimeString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 100);
+            ctx.fillText(CalendarUtils.getTimeString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 100);
 
             
             ctx.textAlign = "left";
@@ -375,12 +394,12 @@ class CalendarDashboard extends BaseObject {
         ctx.font = "64px Fixedsys";
         ctx.textAlign = "center";
         ctx.fillStyle = "rgba(180,180,180, " + alpha + ")";
-        ctx.fillText(this.getWeekdayString(),0, -50);
+        ctx.fillText(CalendarUtils.getWeekdayString(),0, -50);
         
         ctx.textAlign = "center";
         ctx.font = "52px Fixedsys";
         ctx.fillStyle = "rgba(255,255,255, " + alpha + ")";
-        ctx.fillText(this.getTimeString(), 0, 20);
+        ctx.fillText(CalendarUtils.getTimeString(), 0, 20);
         
     }
 

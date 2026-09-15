@@ -106,7 +106,7 @@ class CupGameDemo extends BaseObject{
                 {
                     var items = [];
                     for(var i = 0 ; i < 3; i++){
-                        items.push(randInt(0, 4));
+                        items.push(randInt(0, CupItem.typeNum));
                     }
                     this.cupGame.cupSwapDuration = 12;
                     this.cupGame.shuffleSteps = 8;
@@ -141,6 +141,7 @@ const CUPGAMESTATE = Object.freeze(new Enum(
     "GUESS",
     "REVEAL",
     "KNOCK",
+    "RESTORE",
     "SHOWSHUFFLE",
     "TOTAL"
 ));
@@ -263,8 +264,9 @@ class CupGame extends ManagerObject {
         this.guessCup = cup;
         if(!this.guessCup.content || (chance(0.4) && this.guessCup.content?.type != 0)){
              var item = new CupItem(0,0);
-                cup.setContent(item);
-                item.setType(randInt(1, this.itemTypes));
+            cup.setContent(item);
+            
+            item.setType(randInt(1, CupItem.typeNum));
         }
         cup.revealCup();
         this.actionQueue.add(new WaitAction(20*this.durFactor));
@@ -323,7 +325,7 @@ class CupGame extends ManagerObject {
             if(chance(0.1) || i == 1){
                 var item = new CupItem(0,0);
                 cup.setContent(item);
-                item.setType(randInt(0, this.itemTypes));
+                item.setType(randInt(0, CupItem.typeNum));
                 if(i == 1) item.setType(0);
             }
 
@@ -332,13 +334,24 @@ class CupGame extends ManagerObject {
 
         }
 
-        if(chance(0.9)){
+        if(chance(0.5)){
             var spotus = new SpotusGuy(this.x-400, this.y+780);
+            spotus.setHat(randInt(0, 3));
             spotus.setDepth(-10);
 
             spotus.owner = this;
             this.spotus = spotus;
             this.addObject(spotus);
+        } else if(chance(0.5)) {
+            var poster = new Poster(this.x+400, this.y-200);
+            poster.depth = 10;
+            poster.sprite.setRotation(randRange(-0.08, 0.08));
+            this.addObject(poster);
+        } else {
+            var warnSign = new WarnSign(this.x+400, this.y+280);
+            warnSign.depth = -100;
+            warnSign.sprite.setRotation(randRange(-0.08, 0.08));
+            this.addObject(warnSign);
         }
     }
 
@@ -378,8 +391,8 @@ class CupGame extends ManagerObject {
 
 
     getCupSwapTime(){
-        if(this.spdLvl >= 4) return 1;
-        return this.cupSwapDuration*(1-tweenIn(this.spdLvl/4));
+        if(this.spdLvl >= 5) return 1;
+        return this.cupSwapDuration*(1-tweenIn(this.spdLvl/6));
     }
 
     swapCups(ind1, ind2) {
@@ -662,7 +675,7 @@ class CupCup extends GameObject{
 
 class CupItem extends GameObject{
 
-    static typeNum = 5;
+    static typeNum = 9;
     static soundList = [-1, SND.UFO, SND.DOGBARK, SND.BOING, SND.CHICKEN];
 
     constructor(x, y){
@@ -694,7 +707,7 @@ class CupItem extends GameObject{
     }
 
     getFrame(){
-        return Math.floor(this.img)*CupItem.typeNum + this.type;
+        return Math.floor(this.img) + this.type*4;
     }
 
     setType(type){

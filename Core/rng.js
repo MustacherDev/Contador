@@ -35,11 +35,34 @@ class Random {
         return this.next() * (max - min) + min;
     }
 
+    chance(perc){
+        return this.next() < perc;
+    }
+
     bool() {
-        return this.next() < 0.5;
+        return this.chance(0.5);
     }
 
     pick(array) {
         return array[this.int(0, array.length - 1)];
     }
+
+    shuffle(array){
+        var tempArray = [];
+
+        // REMOVE ALL THE ELEMENTS AT A RANDOM ORDER
+        // PUT THEM INSIDE THE TEMPORARY ARRAY
+        while(array.length > 0){
+            var ind = this.int(0, array.length-1);
+            tempArray.push(array[ind]);
+            array.splice(ind, 1);
+        }
+
+        // REINTRODUCE THE ELEMENTS IN THE ORIGINAL ARRAY
+        for(var element of tempArray){
+            array.push(element);
+        }
+    }
+
+
 }

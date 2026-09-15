@@ -138,3 +138,15 @@ class FunShelves extends BaseObject{
         }
     }
 }
+
+class ShelfItem extends GameObject {
+    constructor(x, y, gridX, gridY, type){
+        super(x, y);
+        this.type = type;
+
+        this.gridX = gridX;
+        this.gridY = gridY;
+
+        this.facing = 1;
+    }
+}

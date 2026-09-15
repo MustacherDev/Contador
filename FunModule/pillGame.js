@@ -57,8 +57,43 @@ class DrMarioPlayerPill {
     }
 }
 
+class PillGame extends ManagerObject{
+    constructor(x,y) {
+        super(x,y);
+
+        var pillsCols = 42;
+        var pillsRows = 16;
+        var pillsWid = canvasWidth*0.2*(pillsCols/8);
+        var pillsHei = pillsWid*(pillsRows/pillsCols);
+
+        this.pillManager = new DrMarioGame(x,y,pillsWid,pillsHei, pillsCols, pillsRows);
+        this.pillManager.originX = 0.5;
+        this.pillManager.originY = 0.5;
+        this.pillManager.fillVirus(30, (pillsCols-8)/2);
+        this.pillManager.hasAutoInput = true;
+
+        this.pipe = this.addObject(new PillPipe(this.x, this.y - canvasHeight*0.5));
+    }
+
+    update(dt){
+        if(!this.active) return;
+        this.pillManager.update(dt);
+        this.updateObjects(dt);
+    }
+
+    pushDraw(){
+        manager.addDrawObject(this);
+        this.pushDrawObjects();
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.pillManager.draw(ctx);
+    }
+}
+
 class DrMarioGame extends BaseObject{
-    constructor(x,y,wid,hei, cols, rows,) {
+    constructor(x,y,wid,hei, cols, rows) {
         super(x,y);
 
         this.wid = wid;
@@ -125,8 +160,6 @@ class DrMarioGame extends BaseObject{
         this.hasAutoInput = false;
         this.colorPool = [];
 
-
-
         this.init(this.cols, this.rows);
     }
 
@@ -178,16 +211,28 @@ class DrMarioGame extends BaseObject{
         }    
     }
 
-    fillVirus(){
+    fillVirus(virusAmount = 16, borderSpace = 0){
         this.fillHeight = Math.floor(this.rows / 1.6);
-
-
+        
+        var indexes = [];
         for (var i = 0; i < this.rows; i++) {
             for (var j = 0; j < this.cols; j++) {
-                if (chance(0.4) && i > this.fillHeight) {
-                    this.grid[i][j] = this.createVirus(this.getRandomColor());
+                if(j < borderSpace || j > this.cols-1-borderSpace) continue;
+                if (i > this.fillHeight) {
+                    indexes.push(j + i*this.cols);
                 }
             }
+        }
+
+        for(var i = 0; i < virusAmount; i++){
+            if(indexes.length <= 0) break;
+
+            var indInd = randInt(0, indexes.length);
+            var gridInd = indexes[indInd];
+            indexes.splice(indInd, 1);
+            var col = gridInd % this.cols;
+            var row = Math.floor(gridInd / this.cols);
+            this.grid[row][col] = this.createVirus(this.getRandomColor());
         }
     }
 
@@ -607,10 +652,12 @@ class DrMarioGame extends BaseObject{
             this.downHoldImunityAlarm.restart();
             this.playerPill = this.createRandomPlayerPill();
 
+            // CHECK IF THERE'S EMPTY SPACE IN THE LOCATION WHERE PILLS GET DISPENSED
+            // IF THE SPACE IS OCCUPIED THE GAME IS LOST
             if(this.grid[this.playerPill.y][this.playerPill.x].type != DRMARIOTYPE.EMPTY){
-                this.setState(6);
+                this.setState(DRMARIOSTATE.LOST);
             } else if(this.grid[this.playerPill.y][this.playerPill.x+1].type != DRMARIOTYPE.EMPTY){
-                this.setState(6);
+                this.setState(DRMARIOSTATE.LOST);
             }
         }
     }
@@ -654,9 +701,8 @@ class DrMarioGame extends BaseObject{
 
         
         var virusCount = this.countVirus();
-        //console.log("Erasing Sequence " + virusCount + " Viruses Counted");
         if(virusCount == 0){
-            this.setState(5);
+            this.setState(DRMARIOSTATE.WON);
         } else {
             this.setState(4);
         }

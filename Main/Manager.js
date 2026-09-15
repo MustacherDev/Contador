@@ -1,220 +1,4 @@
-class BeatMachine{
-    constructor(beats){
-        this.bps = beats;
-        this.lastBeat = 0;
-        this.startTime = new Date();
-        this.beatTrigger = null;
-    }
 
-    update(dt){
-        const now = new Date();
-        var msDiff = now - this.startTime;
-        var beat = Math.floor(msDiff*this.bps/1000);
-
-        if(beat != this.lastBeat){
-            this.lastBeat = beat;
-            if(this.beatTrigger){
-                this.beatTrigger(beat);
-            }
-        }
-    }
-}
-
-class BeatPattern {
-    constructor(bps, patternSize, beatList){
-        this.bps = bps;
-
-        this.beatList = beatList;
-        this.patternSize = patternSize;
-    }
-
-    checkBeat(beat){
-        var beatWrap = beat%this.patternSize;
-        if(this.beatList.includes(beatWrap)) return true;
-        return false;
-    }
-}
-
-
-
-class FunRoom {
-    constructor(xSlot, ySlot){
-        this.xSlot = xSlot;
-        this.ySlot = ySlot;
-
-        this.visible = false;
-        this.active = false;
-
-        this.ambientMusic = -1;
-        this.ambientMusicTimestamp = 0;
-        this.stopMusic = true;
-        // this.ambientMusicBeatSync = true;
-        // this.ambientMusicBeatOffset = 0;
-        this.restartMusic = true;
-
-        this.objects = [];
-    }
-
-    setActive(active){
-        if(active == this.active) return;
-        for(var obj of this.objects){
-            obj.setActive(active);
-        }
-        this.active = active;
-    }
-
-    setVisible(visible){
-        if(visible == this.visible) return;
-        for(var obj of this.objects){
-            obj.changeVisible(visible);
-        }
-        this.visible = visible;
-    }
-
-    addObject(obj){
-        this.objects.push(obj);
-    }
-
-    update(dt){
-        //if(!this.active) return;
-
-        for(var i = 0; i < this.objects.length; i++){
-            this.objects[i].update(dt);
-        }
-    }
-
-    getX(){
-        return this.xSlot*canvasWidth;
-    }
-
-    getY(){
-        return this.ySlot*canvasHeight;
-    }
-
-    draw(ctx){
-        //if(!this.visible) return;
-
-        for(var i = 0; i < this.objects.length; i++){
-            this.objects[i].pushDraw(ctx);
-        }
-    }
-}
-
-class FunRoomViewer{
-    constructor(x, y, camera){
-        this.x = x;
-        this.y = y;
-
-        this.xSlot = 0;
-        this.ySlot = 0;
-
-        this.xSlotPrev = 0;
-        this.ySlotPrev = 0;
-
-        this.moving = false;
-        this.alarm = new Alarm(100);
-        this.alarm.stop();
-
-        this.locked = false;
-
-        this.camRoomXOff = 0;
-        this.camRoomYOff = 0;
-
-        this.camera = camera;
-    }
-
-    isRoomVisible(room){    
-        if(room.xSlot == this.xSlot && room.ySlot == this.ySlot) return true;
-        if(this.moving && (room.xSlot == this.xSlotPrev && room.ySlot == this.ySlotPrev)) return true;
-    }
-
-    isRoomActive(room){
-        if(this.moving) return false;
-        if(room.xSlot == this.xSlot && room.ySlot == this.ySlot) return true;
-    }
-
-    getSlotKey(xSlot, ySlot){
-        return `${xSlot},${ySlot}`;
-    }
-
-    getRoom(xSlot, ySlot){
-        return manager.roomsMap.get(this.getSlotKey(xSlot, ySlot));
-    }
-
-    changeRoom(slotX, slotY){
-        this.xSlot = slotX;
-        this.ySlot = slotY;
-
-        this.moving = true;
-        this.alarm.start();
-
-  
-        var oldRoom = this.getRoom(this.xSlotPrev, this.ySlotPrev);  
-        var currentMusic = SoundPlayer.getMusic();
-        var currentMusicTimestamp = 0;
-
-        if(currentMusic != -1){
-            var currentMusicTimestamp = SoundPlayer.getTimestamp(currentMusic);
-            if(oldRoom?.stopMusic){
-                SoundPlayer.fadeMusicStop(SoundPlayer.getMusic(), 20*this.alarm.duration/2);
-            } else {
-                SoundPlayer.fadeMusic(SoundPlayer.getMusic(), 20*this.alarm.duration/2);
-            }
-        }
-
-        
-        if(oldRoom){
-            if(oldRoom.ambientMusic != -1){
-                oldRoom.ambientMusicTimestamp = currentMusicTimestamp;
-            }
-        }
-
-        var newRoom = this.getRoom(this.xSlot, this.ySlot);
-        if(!newRoom) return;
-        if(newRoom.ambientMusic == -1) return;
-
-        SoundPlayer.playMusic(newRoom.ambientMusic);
-        SoundPlayer.fadeIn(newRoom.ambientMusic, 20*this.alarm.duration/2);
-
-        if(!newRoom.restartMusic){
-            SoundPlayer.setTimestamp(newRoom.ambientMusic, newRoom.ambientMusicTimestamp);
-        }
-    }
-
-
-    update(dt){
-        this.alarm.update(dt);
-        if(this.alarm.finished){
-            this.alarm.stop();
-            this.xSlotPrev = this.xSlot;
-            this.ySlotPrev = this.ySlot;
-            this.moving = false;
-        }   
-
-        if(!this.moving && !this.locked){
-            var movX = -input.keyState[KeyCodes.ArrowLeft][1] + input.keyState[KeyCodes.ArrowRight][1];
-            var movY = -input.keyState[KeyCodes.ArrowUp][1] + input.keyState[KeyCodes.ArrowDown][1];
-            if(movX != 0){
-                this.xSlot += movX;
-                this.moving = true;
-            }
-            if(movY != 0){
-                this.ySlot += movY;
-                this.moving = true;
-            }
-
-            if(this.moving) this.changeRoom(this.xSlot, this.ySlot);
-        }
-
-
-        var t = tweenInOut(this.alarm.percentage());
-        var tInv = 1-t;
-        this.x = (this.xSlot*t + this.xSlotPrev*tInv)*canvasWidth;
-        this.y = (this.ySlot*t + this.ySlotPrev*tInv)*canvasHeight;
-        this.camera.x = canvasWidth*0.5 + this.x + this.camRoomXOff;
-        this.camera.y = canvasHeight*0.5 + this.y + this.camRoomYOff;
-    }
-}
 
 
 class GameManager{
@@ -255,6 +39,8 @@ class GameManager{
 
     }
 
+    
+
     init(){
         // BEATS
         var clockBeat = [
@@ -275,34 +61,50 @@ class GameManager{
 
         
         // INTRO
-        var peachFacing = chance(0.5) ? 1 : -1;
-        var peachKart = new PeachKart(canvasWidth*0.5 - canvasWidth*peachFacing*1.1, canvasHeight - 100, peachFacing, randInt(0, 3));
-
-        var pillDemo = new PillDemo(canvasWidth*0.5 + randRange(-canvasWidth*0.2, canvasWidth*0.2), 0, 0);
-
-        var goatQuote = new GoatQuote(canvasWidth*0.25, canvasHeight*0.7);
-
-        
-        var now = new Date();
-        var dateText = now.toLocaleDateString();
-        var rng = new Random(dateText);
-
-        var intros = [0, 1, 2, 3];
-        var introDuration = [400, 400, 500, 700];
-
         var mdx = canvasWidth*0.5;
         var mdy = canvasHeight*0.5;
 
+        // INTRO DEMOS
+        var peachFacing = chance(0.5) ? 1 : -1;
 
-
-
-        var intro = intros[now.getDate()%intros.length];
-
-        this.calendarDashboard = new CalendarDashboard(introDuration[intro]);
-
+        var peachKart = new PeachKart(canvasWidth*0.5 - canvasWidth*peachFacing*1.1, canvasHeight - 100, peachFacing, randInt(0, 3));
+        var pillDemo = new PillDemo(canvasWidth*0.5 + randRange(-canvasWidth*0.2, canvasWidth*0.2), 0, 0);
+        var goatQuote = new GoatQuote(canvasWidth*0.25, canvasHeight*0.7);
         var cupDemo = new CupGameDemo(mdx, mdy*1.75);
 
-        
+        // INTRO AND ROOM SETUP DATE POOLS
+        var now = new Date();
+
+        var setupsNum = 5;
+        var totalDays = CalendarUtils.getYearDays();
+        var wookRNG = new Random(Math.floor(totalDays/setupsNum));
+        var wookDay = totalDays%setupsNum;
+
+        // SETUPS
+        var setupPool = [];
+        for(var i = 0; i < setupsNum; i++){
+            setupPool.push(i);
+        }
+        wookRNG.shuffle(setupPool);
+
+        this.roomSetupIndex = setupPool[wookDay];
+
+        // INTROS
+        var introsNum = 4;
+        var introPool = [];
+        for(var i = 0; i < introsNum; i++){
+            introPool.push(i);
+        }
+        wookRNG.shuffle(introPool);
+
+
+        // INTRO CONFIG
+        var introDuration = [400, 400, 500, 700];
+
+        var intro = introPool[totalDays%introsNum];
+        this.calendarDashboard = new CalendarDashboard(introDuration[intro]);
+
+
         
         switch(intro){
             case 0:
@@ -320,7 +122,6 @@ class GameManager{
         }
 
 
-        this.roomSetupIndex = rng.int(0, 4);
 
         this.setupRooms(this.roomSetupIndex, false);
     }
@@ -338,7 +139,6 @@ class GameManager{
     setupRooms(roomSetupIndex, developer = true){
         var dateText = (new Date()).toLocaleDateString();
 
-
         console.log("SETTING ROOMS");
         if(developer){
             SoundPlayer.play(SND.CORRECT);
@@ -351,11 +151,13 @@ class GameManager{
         var mdx = canvasWidth*0.5;
         var mdy = canvasHeight*0.5;
 
+        // MAIN ROOM
         var room = this.createRoom(0,0);
         room.addObject(this.calendarDashboard);
         this.finishStar = new FinishStar(room.getX() + mdx*2 - 120, room.getY() + 120);
         room.addObject(this.finishStar);
 
+        // SHELVES ROOM
         room = this.createRoom(0, -1);
         var funShelves = new FunShelves(room.getX() + mdx, room.getY() + mdy);
         funShelves.randomFill(dateText);
@@ -367,16 +169,11 @@ class GameManager{
         room.ambientMusic = SND.BOSSAUSADA;
         room.stopMusic = false;
 
-        
-        
-
-        
-
-
-        // ROOMS
+        // SETUPS
         switch(roomSetupIndex){
             case 0:
                 {
+                    // FAME HALL SETUP
                     room = this.createRoom(1, 0);
                     var fameHall = new FameHall(room.getX() + mdx, room.getY() + mdy, 0);
                     room.addObject(fameHall);
@@ -388,46 +185,48 @@ class GameManager{
             break;
             case 1:
                 {
+                    // PILL SETUP
                     room = this.createRoom(-1, 0);
-                    var pillsCols = 8;
-                    var pillsRows = 16;
-                    var pillsWid = canvasWidth*0.2;
-                    var pillsHei = pillsWid*(pillsRows/pillsCols);
-
-                    this.pillGame = new DrMarioGame(room.getX() + mdx, room.getY() + mdy, pillsWid, pillsHei, 8, 16);
-                    this.pillGame.originX = 0.5;
-                    this.pillGame.originY = 0.5;
-                    this.pillGame.fillVirus();
-                    this.pillGame.hasAutoInput = true;
+                    this.pillGame = new PillGame(room.getX() + mdx, room.getY() + mdy);
                     room.addObject(this.pillGame);
+
+                    room = this.createRoom(-1, -1);
+                    var pipe = new PillPipe(room.getX() + mdx, room.getY() + mdy*2, false);
+                    room.addObject(pipe);
                 }
             break;
             case 2:
                 {
+                    // GOAT SETUP
                     room = this.createRoom(1, 0);
                     this.goatInterface = new MagicGoatInterface(room.getX() + mdx, room.getY() + mdy);
                     this.goatInterface.setText("");
-                    var pGuy = new PurpleDude(room.getX() + mdx + 400, room.getY() + mdy);
                     room.addObject(this.goatInterface);
-                    room.addObject(pGuy);
+                    //var pGuy = new PurpleDude(room.getX() + mdx + 400, room.getY() + mdy);
+                    //room.addObject(pGuy);
                 }
             break;
             case 3:
+                // FOREST SETUP
                 room = this.createRoom(1, 0);
                 this.plantForest = new PlantInstance(room.getX() + mdx, room.getY() + mdy*2, Math.PI);
                 room.addObject(this.plantForest);
                 break;
             case 4:
+                // CIRCUS SETUP
                 room = this.createRoom(-1, 0);
                 this.cupGame = new CupGame(room.getX() + mdx, room.getY() + mdy*1.25);
                 room.ambientMusic = SND.MUSICSPOTUS;
                 room.stopMusic = false;
                 room.addObject(this.cupGame);
                 break;
+            case 5:
+                // OMEGARUNE SETUP
+                room = this.createRoom(1, 0);
+                this.omegaRune = new OmegaRune(room.getX() + mdx, room.getY() + mdy);
+                room.addObject(this.omegaRune);
+                break;
         }
-
-        this.roomViewer.xSlot = 0;
-        this.roomViewer.xSlotPrev = 0;
     }
 
 
@@ -443,6 +242,8 @@ class GameManager{
 
 
 
+    // EXECUTES ACTIONS BASED ON THE BEATS
+    // MAINLY PLAYS SOUNDS
     beatTrigger(beat){
         var soundList = [SND.TICK, SND.TOCK, SND.WATERDROP, SND.POP, SND.WRENCH];
         for(var i = 0; i < this.beatStyles[this.beatStyleIndex].length; i++){
@@ -460,9 +261,12 @@ class GameManager{
         this.roomViewer.locked = locked;
     }
     
-
     update(dt){
         this.actionQueue.update(dt);
+        this.faviconAnimation.update(dt);
+        this.beatMachine.update(dt);
+        this.roomViewer.update(dt);
+        this.fadeAlarm.update(dt);
 
         if(input.keyState[KeyCodes.Space][0]){
             if(input.keyState[KeyCodes.Digit1][1]) this.setupRooms(0);
@@ -478,20 +282,6 @@ class GameManager{
             if(input.keyState[KeyCodes.KeyF][1]) this.finishGame();
         }
 
-  
-        
-
-        this.faviconAnimation.update(dt);
-        this.beatMachine.update(dt);
-        this.roomViewer.update(dt);
-        this.fadeAlarm.update(dt);
-
-        //this.animeText.update(dt);
-
-
-
-
-  
 
         for(var i = 0; i < this.objects.length; i++){
             this.objects[i].update(dt);
@@ -542,12 +332,9 @@ class GameManager{
     }
 
     draw(ctx){
-        if(!this.fadeAlarm.finished){
-            ctx.fillStyle = "rgba(0,0,0,"+ (1-this.fadeAlarm.percentage()) +")";
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-        }
-
-        //this.animeText.draw(ctx);
+        if(this.fadeAlarm.finished) return;
+        ctx.fillStyle = "rgba(0,0,0,"+ (1-this.fadeAlarm.percentage()) +")";
+        ctx.fillRect(0,0, canvas.width, canvas.height);
     }
 
     drawRequests(ctx) {

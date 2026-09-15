@@ -37,11 +37,18 @@ class ManagerObject extends BaseObject{
 
     addObject(obj){
         this.objects.push(obj);
+        return obj;
     }
 
     updateObjects(dt){
         for(var obj of this.objects){
             obj.update(dt);
+        }
+
+        for(var i = 0; i < this.objects.length; i++){
+            if(this.objects[i].active) continue;
+            this.objects.splice(i, 1);
+            i--;
         }
     }
 
@@ -244,6 +251,10 @@ class SpotusGuy extends GameObject {
         
     }
 
+    setHat(hat){
+        this.hat.setFrame(hat);
+    }
+
     setState(state){
         switch(state){
             case "idle":
@@ -335,7 +346,7 @@ class Poster extends GameObject{
     constructor(x, y){
         super(x, y);
 
-        this.scl = 5;
+        this.scl = 3;
 
         this.sprite = new SpriteInstance(sprites[SPR.POSTERS], x, y);
         this.sprite.setScale(this.scl);
@@ -353,14 +364,74 @@ class Poster extends GameObject{
 
 }
 
+class PillPipe extends GameObject{
+    constructor(x, y, faceDown = true){
+        super(x, y);
+
+        this.scl = 3;
+
+        this.sprite = new SpriteInstance(sprites[SPR.PIPE], x, y);
+        
+        if(!faceDown){
+            this.sprite.setScale(this.scl, -this.scl);
+        } else {
+            this.sprite.setScale(this.scl, this.scl);
+        }
+        this.sprite.setOrigin(0.5, 0);
+    }
+
+    
+
+    update(dt){
+        this.sprite.setPosition(this.x, this.y);
+    }
+
+    draw(ctx){
+        this.sprite.draw(ctx);
+    }
+
+}
+
+
+class WarnSign extends GameObject{
+    constructor(x, y){
+        super(x, y);
+
+        this.scl = 3;
+
+        this.sprite = new SpriteInstance(sprites[SPR.SIGN], x, y);
+        this.sprite.setScale(this.scl);
+        this.sprite.setOrigin(0.5, 0.8);
+    }
+
+    update(dt){
+        this.sprite.setPosition(this.x, this.y);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.sprite.draw(ctx);
+    }
+
+}
+
+class CeilingDeco extends ManagerObject{
+    constructor(x, y){
+        super(x, y);
+
+    }
+
+}
+
+
 class HouseWindow extends GameObject {
     constructor(x, y){
         super(x, y);
-        this.wid = 128;
+        this.wid = 150;
         this.hei = 200;
 
-        this.gridWid = this.wid*0.15;
-        this.gridHei = this.hei*0.1;
+        this.gridWid = this.wid*0.08;
+        this.gridHei = this.hei*0.08;
 
         this.skyColors = [
             new Color(19, 0, 36),
@@ -374,6 +445,26 @@ class HouseWindow extends GameObject {
         this.skyColorAlarm = new Alarm(36000);
         this.skyColorCSS = this.getSkyColor();
 
+        this.moonProp = new SpriteInstance(sprites[SPR.SKYPROPS], this.x, this.y, 0);
+        this.moonProp.setOrigin(0.5, 0.5);
+        this.moonProp.setScale(3);
+
+        this.sunProp = new SpriteInstance(sprites[SPR.SKYPROPS], this.x, this.y, 1);
+        this.sunProp.setOrigin(0.5, 0.5);
+        this.sunProp.setScale(3);
+
+        this.cloudProp = new SpriteInstance(sprites[SPR.SKYPROPS], this.x, this.y, 2);
+        this.cloudProp.setOrigin(0.5, 0.5);
+        this.cloudProp.setScale(3);
+
+        this.starProp = new SpriteInstance(sprites[SPR.SKYPROPS], this.x, this.y, 3);
+        this.starProp.setOrigin(0.5, 0.5);
+        this.starProp.setScale(6);
+
+
+        this.dayPerc = this.getDayPerc();
+        this.updateSkyTime();
+
         this.depth = 1000;
     }
 
@@ -381,8 +472,7 @@ class HouseWindow extends GameObject {
         var index = this.skyColors.length * dayPerc;
         var gradPerc = index - Math.floor(index);
 
-        console.log(index);
-        var color1 = this.skyColors[Math.floor(index)];
+        var color1 = this.skyColors[Math.floor(index)%this.skyColors.length];
         var color2 = this.skyColors[(Math.floor(index)+1)%this.skyColors.length];
 
         this.skyColor = Color.getInterpol(color1, color2, gradPerc).toCSS();
@@ -394,28 +484,67 @@ class HouseWindow extends GameObject {
         return hours/24;
     }
 
+    // getDayPerc(){
+    //     var now = new Date();
+    //     var hours =  now.getSeconds() + now.getMilliseconds()/1000;
+    //     hours *= 5;
+    //     hours %= 60;
+    //     return hours/60;
+    // }
+
+    updateSkyTime(){
+        this.dayPerc = this.getDayPerc();
+        this.getSkyColor();
+        var rad = 200;
+        var phase = Math.PI/4 + this.dayPerc*Math.PI*2;
+        var xx = - rad*0.45 + rad*Math.cos(phase);
+        var yy = + rad*0.6 + rad*Math.sin(phase);
+
+        this.moonProp.setPosition(this.x + xx, this.y + yy);
+        this.sunProp.setPosition(this.x - xx, this.y - yy);
+        this.cloudProp.setPosition(this.x - 200 + 800*this.dayPerc, this.y + 80);
+        this.starProp.setPosition(this.x + this.wid*0.5, this.y + this.hei*0.5);
+        var moldy = clamp(molder(this.dayPerc, 0.7, 1, 0, 1), 0, 1);
+        this.starProp.setAlpha(zigzag(moldy));
+            
+    }
+
     update(dt){
         this.skyColorAlarm.update(dt);
         if(this.skyColorAlarm.finished){
-           
-            this.getSkyColor();
+            this.updateSkyTime();
             this.skyColorAlarm.restart();
         }
+
+        
 
     }
 
     draw(ctx){
         if(!this.visible) return;
 
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.wid, this.hei);
+        ctx.clip();
+
+ 
+
         ctx.fillStyle = this.skyColor;
         ctx.fillRect(this.x, this.y, this.wid, this.hei);
 
-        // ctx.fillStyle = "rgb(52, 12, 63)"
-        // ctx.fillRect(this.x, this.y, this.wid, this.hei);
+        this.starProp.draw(ctx);
+        this.moonProp.draw(ctx);
+        this.sunProp.draw(ctx);
+        this.cloudProp.draw(ctx);
+        
 
         ctx.fillStyle = "rgb(0, 0, 0)";
         ctx.fillRect(this.x + this.wid*0.5 - this.gridWid*0.5, this.y, this.gridWid, this.hei);
         ctx.fillRect(this.x, this.y + this.hei*0.5 - this.gridHei*0.5, this.wid, this.gridHei);
+
+        ctx.restore();
     }
 }
 
@@ -446,6 +575,24 @@ class BigClock extends GameObject{
         this.back.setRelativePivot(0.5, 1);
         this.body.addChild(this.back);
 
+        this.pointer = new AnimationNode(SPR.CLOCKPOINTER);
+        this.pointer.sprite.setFrame(0);
+        this.pointer.setScale(0.5, 0.5);
+        this.pointer.depth = -50;
+        this.pointer.x = 7.5;
+        this.pointer.y = 19.5;
+        this.pointer.setPivot(0.5, 1.5);
+        this.body.addChild(this.pointer);
+
+        this.pointer2 = new AnimationNode(SPR.CLOCKPOINTER);
+        this.pointer2.sprite.setFrame(1);
+        this.pointer2.setScale(0.5, 0.5);
+        this.pointer2.depth = -50;
+        this.pointer2.x = 7.5;
+        this.pointer2.y = 19.5;
+        this.pointer2.setPivot(0.5, 1.5);
+        this.body.addChild(this.pointer2);
+
         this.pendulum = new AnimationNode(SPR.BIGCLOCK);
         this.pendulum.x = 8;
         this.pendulum.y = 24;
@@ -460,6 +607,7 @@ class BigClock extends GameObject{
 
         this.swingAlarm = new Alarm(65);
         this.swingSide = 0;
+        this.pointerAng = 0;
 
         this.hitCooldown = new Alarm(10);
     }
@@ -469,6 +617,9 @@ class BigClock extends GameObject{
         this.swingAlarm.restart();
         this.swingSide++;
         this.swingSide %= 2;
+        this.pointerAng += Math.PI*2/12;
+        this.pointer.setRotation(this.pointerAng);
+        this.pointer2.setRotation(this.pointerAng/30);
     }
 
 

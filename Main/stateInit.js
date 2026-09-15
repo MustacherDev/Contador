@@ -4,11 +4,11 @@ function stateInit(dt){
     if (input.mouseState[0][1]){
         if(Assets.checkTextures()) {
             Assets.loadSprites();
-            executingState = stateMenu;
+            executingState = stateGame;
 
             manager.init();
 
-            stateMenuSetup();
+            stateGameSetup();
         }
     }
 
