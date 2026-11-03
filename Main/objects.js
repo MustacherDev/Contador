@@ -70,6 +70,10 @@ class ManagerObject extends BaseObject{
 class GameObject extends BaseObject{
     constructor(x, y){
         super(x, y);
+        this.xScl = 1;
+        this.yScl = 1;
+        this.ang =  0;
+        this.animator = new EffectManager(this);
     }
 
     update(dt){
@@ -84,6 +88,11 @@ class GameObject extends BaseObject{
 
     }
 }
+
+
+
+
+
 
 class PurpleDude extends GameObject {
     constructor(x, y) {

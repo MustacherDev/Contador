@@ -50,6 +50,7 @@ class ActionQueue {
 class Action {
     start() {}
     update(dt) {}
+    finish() {}
     isFinished() { return true; }
 }
 

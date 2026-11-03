@@ -225,6 +225,8 @@ class GameManager{
                 room = this.createRoom(1, 0);
                 this.omegaRune = new OmegaRune(room.getX() + mdx, room.getY() + mdy);
                 room.addObject(this.omegaRune);
+                room = this.createRoom(-1, 0);
+                room.addObject(new GarbageCan(room.getX() + mdx, room.getY() + mdy*1.5));
                 break;
         }
     }

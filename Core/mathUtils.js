@@ -149,6 +149,23 @@ function molder(val, valMin, valMax, outMin, outMax){
 
 
 
+const Easing = {
+    linear: t => t,
+
+    inQuad: t => t * t,
+    outQuad: t => t * (2 - t),
+    inOutQuad: t => t < 0.5
+        ? 2 * t * t
+        : 1 - Math.pow(-2 * t + 2, 2) / 2,
+
+    inCubic: t => t * t * t,
+    outCubic: t => 1 - Math.pow(1 - t, 3),
+    inOutCubic: t => t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2
+};
+
+
 
 
 

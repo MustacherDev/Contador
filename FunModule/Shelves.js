@@ -48,7 +48,7 @@ class FunShelves extends BaseObject{
             var pos = slotsInds[ind];
             slotsInds.splice(ind, 1);
 
-            var propType = 12 + rng.int(0, 8);
+            var propType = 12 + rng.int(0, 12);
    
             this.grid[pos.row][pos.col] = propType;
         }

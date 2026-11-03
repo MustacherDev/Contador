@@ -176,6 +176,8 @@ Assets.addSound("BOING", "Sounds/boing.wav");
 Assets.addSound("MUSICSPOTUS", "Sounds/Spotus Quest.mp3",{loop:true});
 Assets.addSound("HEARTHIT", "Sounds/heartHit.wav");
 Assets.addSound("HEARTGRAZE", "Sounds/heartGraze.wav");
+Assets.addSound("OPEN", "Sounds/container/snd_impact.wav");
+Assets.addSound("OPENECO", "Sounds/container/snd_locker.wav");
 
 Assets.addSprite("PORTRAITS", "Sprites/portrait2.png", {wid:256, hei:256, cols:6, rows:6});
 Assets.addSprite("PORTRAITS2", "Sprites/portrait3.png", {wid:256, hei:256, cols:6, rows:3});
@@ -210,3 +212,6 @@ Assets.addSprite("OMEGABULLETS", "Sprites/bullets.png", {wid:32, hei:32, cols:4,
 Assets.addSprite("PIPE", "Sprites/pipe.png");
 Assets.addSprite("CLOCKPOINTER", "Sprites/clockPointer.png", {wid:12, hei:3, cols:1, rows:3});
 Assets.addSprite("SKYPROPS", "Sprites/skyProps.png", {wid:32, hei:32, cols:4, rows:1});
+Assets.addSprite("GARBAGECAN", "Sprites/dumpster.png", {wid:60, hei:66, cols:3, rows:1});
+Assets.addSprite("GARBAGECANOUTLINE", "Sprites/dumpster.png", {imgY:66, wid:60, hei:66, cols:3, rows:1});
+Assets.addSprite("HACKER", "Sprites/hacker.png", {wid:39, hei:51, cols:4, rows:1});

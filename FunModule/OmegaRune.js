@@ -42,9 +42,28 @@ class OmegaRune extends ManagerObject{
             var yy = this.y - canvasHeight*0.4 + randRange(-100, 100);
 
             var type = randInt(0, OmegaBullet.typeNum);
-            var bullet = new OmegaBullet(this, xx, yy, type);
+            var bullet = null;
+            var dir = choose([1, -1]);
+            var ang = randRange(0, Math.PI/0.5);
+            var rad = 200 + randInt(0, canvasHeight*0.25);
+            var xRad = this.x + Math.cos(ang)*rad;
+            var yRad = this.y + Math.sin(ang)*rad;
 
-            bullet.vspd = 3;
+            switch(type){
+                case 0:
+                    bullet = new SoccerBallOmegaBullet(this, randInt(canvasWidth*0.5, canvasWidth*0.5+200)*dir, canvasHeight*0.5, this.y + 200,  -dir);
+                break;
+                case 1:
+                    bullet = new PillOmegaBullet(this,xx, yy);
+                    break;
+                case 2:
+                    bullet = new HatOmegaBullet(this,xx, yy);
+                    break;
+                case 3:
+                    bullet = new FlyOmegaBullet(this,xRad, yRad);
+                    break;
+            }
+
             this.addBullet(bullet);
             this.bulletSpawnAlarm.restart();
         }
@@ -155,7 +174,7 @@ class OmegaHeart extends OmegaObject{
         this.boxHit = new BoundingBox(this.x, this.y, this.wid*1/8, this.hei*1/8);
         this.boxHit.setOrigin(0.5, 0.5);
 
-        this.boxGraze = new BoundingBox(this.x, this.y, this.wid*2.5, this.hei*2.5);
+        this.boxGraze = new BoundingBox(this.x, this.y, this.wid*2.8, this.hei*2.8);
         this.boxGraze.setOrigin(0.5, 0.5);
 
         this.hitCooldown = new Alarm(20);
@@ -219,8 +238,8 @@ class OmegaHeart extends OmegaObject{
         var moveY = input.keyState[KeyCodes.KeyS][0] - input.keyState[KeyCodes.KeyW][0];
         var moveX = input.keyState[KeyCodes.KeyD][0] - input.keyState[KeyCodes.KeyA][0];
 
-        if(!this.omegaManager.box.checkBorder(this.x + moveX*this.spd, this.y, this.wid/2)) moveX = 0;
-        if(!this.omegaManager.box.checkBorder(this.x, this.y + moveY*this.spd, this.hei/2)) moveY = 0;
+        if(!this.omegaManager.box.checkBorder(this.x + moveX*this.spd, this.y, this.wid/6)) moveX = 0;
+        if(!this.omegaManager.box.checkBorder(this.x, this.y + moveY*this.spd, this.hei/6)) moveY = 0;
 
         this.x += moveX*this.spd*dt;
         this.y += moveY*this.spd*dt;
@@ -252,52 +271,27 @@ class OmegaHeart extends OmegaObject{
 class OmegaBullet extends OmegaObject{
     static typeNum = 4;
 
-    constructor(omegaManager,x, y, type){
+    constructor(omegaManager,x, y, wid, hei, type){
         super(x, y, omegaManager);
+
         this.omegaManager = omegaManager;
-        this.wid = 32;
-        this.hei = 32;
+
+        this.wid = wid;
+        this.hei = hei;
 
         this.type = type;
 
         this.hspd = 0;
         this.vspd = 0;
-        this.vacc = 0;
         this.ang = 0;
         this.angSpd = 0;
+
         this.life = 400;
-
-        switch(this.type){
-            case 0:
-                this.wid = 12;
-                this.hei = 12;
-                this.angSpd = 0.1;
-                break;
-            case 1:
-                this.wid = 26;
-                this.hei = 11;
-                break;
-            case 2:
-                this.wid = 12;
-                this.hei = 18;
-                break;
-            case 3:
-                this.wid = 6;
-                this.hei = 6;
-                break;
-        }
-
-        this.sprite = new SpriteInstance(sprites[SPR.OMEGABULLETS], this.x, this.y);
-        this.sprite.setFrame(this.type);
-        this.scl = 3;
-        this.wid *= this.scl;
-        this.hei *= this.scl;
-        this.sprite.setScale(this.scl);
-        this.sprite.setOrigin(0.5, 0.5);
 
         this.box = new BoundingBox(this.x, this.y, this.wid, this.hei);
         this.box.setOrigin(0.5, 0.5);
     }
+
 
     getTp(){
         return 1;
@@ -307,19 +301,7 @@ class OmegaBullet extends OmegaObject{
         return 5;
     }
 
-    update(dt){
-        if(!this.active) return;
-        this.life -= dt;
-        this.vspd += this.vacc*dt;
-        this.x += this.hspd*dt;
-        this.y += this.vspd*dt;
-        this.ang += this.angSpd*dt;
-        this.sprite.setPosition(this.x, this.y);
-        this.sprite.setRotation(this.ang);
-        this.box.setPosition(this.x, this.y);
-
-        if(this.life <= 0) this.active = false;
-    }
+    update(dt){}
 
     pushDraw(){
         manager.addDrawObject(this);
@@ -327,6 +309,230 @@ class OmegaBullet extends OmegaObject{
 
     draw(ctx){
         if(!this.active) return;
-        this.sprite.draw(ctx);
+        if(this.sprite) this.sprite.draw(ctx);
+    }
+}
+
+class PillOmegaBullet extends OmegaBullet{
+    constructor(omegaManager, x, y){
+        super(omegaManager, x, y, 24,12, 1);
+        this.sprite = new SpriteInstance(sprites[SPR.OMEGABULLETS], this.x, this.y);
+        this.sprite.setFrame(this.type);
+
+        this.scl = 3;
+        this.wid *= this.scl;
+        this.hei *= this.scl;
+        this.sprite.setScale(this.scl);
+        this.sprite.setOrigin(0.5, 0.5);
+
+        this.vspd = 5;
+
+
+    } 
+
+    update(dt){
+        if(!this.active) return;
+        this.life -= dt;
+
+        this.x += this.hspd*dt;
+        this.y += this.vspd*dt;
+        this.ang += this.angSpd*dt;
+
+        this.sprite.setPosition(this.x, this.y);
+        this.sprite.setRotation(this.ang);
+        this.box.setPosition(this.x, this.y);
+
+    }
+}
+
+
+
+class HatOmegaBullet extends OmegaBullet{
+    constructor(omegaManager, x, y){
+        super(omegaManager, x, y, 12,12, 2);
+        this.sprite = new SpriteInstance(sprites[SPR.OMEGABULLETS], this.x, this.y);
+        this.sprite.setFrame(this.type);
+
+        this.scl = 3;
+        this.wid *= this.scl;
+        this.hei *= this.scl;
+        this.sprite.setScale(this.scl);
+        this.sprite.setOrigin(0.5, 0.5);
+
+        this.vspd = 5;
+
+
+    } 
+
+    update(dt){
+        if(!this.active) return;
+        this.life -= dt;
+
+        this.x += this.hspd*dt;
+        this.y += this.vspd*dt;
+        this.ang += this.angSpd*dt;
+
+        this.sprite.setPosition(this.x, this.y);
+        this.sprite.setRotation(this.ang);
+        this.box.setPosition(this.x, this.y);
+
+    }
+}
+
+class FlyOmegaBullet extends OmegaBullet{
+    constructor(omegaManager, x, y){
+        super(omegaManager, x, y, 6,6, 3);
+
+        this.sprite = new SpriteInstance(sprites[SPR.OMEGABULLETS], this.x, this.y);
+        this.sprite.setFrame(this.type);
+
+        this.scl = 3;
+        this.wid *= this.scl;
+        this.hei *= this.scl;
+        this.sprite.setScale(this.scl);
+        this.sprite.setOrigin(1, 0.5);
+
+        this.ang = randRange(0, Math.PI*2);
+
+        this.phase = "spin";
+        this.phaseTimer = 0;
+
+        // Spin
+        this.spinSpeed = 0.12;
+        this.spinDeceleration = 0.08;
+
+        // Aim
+        this.aimDuration = 80;
+        this.aimStartAng = 0;
+        this.aimTargetAng = 0;
+
+        // Dash
+        this.dashSpeed = 16;
+        this.dashDuration = 100;
+    }
+
+    update(dt){
+        this.phaseTimer += dt;
+
+        switch(this.phase){
+            case "spin":{
+                this.ang += this.spinSpeed * dt;
+                this.spinSpeed = Math.max(0, this.spinSpeed - this.spinDeceleration * dt);
+
+                if(this.spinSpeed <= 0){
+                    this.phase = "aim";
+                    this.phaseTimer = 0;
+
+                    let player = this.omegaManager.heart;
+
+                    this.aimStartAng = this.ang;
+                    this.aimTargetAng = Math.atan2(
+                        player.y - this.y,
+                        player.x - this.x
+                    );
+                }
+                break;
+            }
+
+            case "aim":{
+                let t = Math.min(this.phaseTimer / this.aimDuration, 1);
+
+                // Smooth interpolation
+                t = t * t * (3 - 2 * t);
+
+                let diff = Math.atan2(
+                    Math.sin(this.aimTargetAng - this.aimStartAng),
+                    Math.cos(this.aimTargetAng - this.aimStartAng)
+                );
+
+                this.ang = this.aimStartAng + diff * t;
+
+                if(this.phaseTimer >= this.aimDuration){
+                    this.phase = "dash";
+                    this.phaseTimer = 0;
+                }
+                break;
+            }
+
+            case "dash":{
+                this.x += Math.cos(this.ang) * this.dashSpeed * dt;
+                this.y += Math.sin(this.ang) * this.dashSpeed * dt;
+
+                if(this.phaseTimer >= this.dashDuration){
+                    this.phase = "despawn";
+                }
+                break;
+            }
+
+            case "despawn":{
+                this.active = false;
+                break;
+            }
+        }
+
+        this.sprite.setPosition(this.x, this.y);
+        this.sprite.setRotation(this.ang);
+        this.box.setPosition(this.x, this.y);
+
+    }
+
+}
+
+class SoccerBallOmegaBullet extends OmegaBullet{
+    constructor(omegaManager, x, y, groundY, dir = 1){
+        super(omegaManager, x, y, 12, 12, 0);
+
+        this.sprite = new SpriteInstance(sprites[SPR.OMEGABULLETS], this.x, this.y);
+        this.sprite.setFrame(this.type);
+        this.sprite.setOrigin(0.5, 0.5);
+
+        this.scl = 3;
+        this.wid *= this.scl;
+        this.hei *= this.scl;
+        this.sprite.setScale(this.scl);
+
+        // Horizontal movement
+        this.hspd = 6 * dir;
+
+        // Vertical movement
+        this.groundY = groundY;
+        this.vspd = -10;
+        this.gravity = 0.2;
+        this.bounce = 1;
+
+        // Lifetime
+        this.lifetime = 500;
+        this.timer = 0;
+
+        this.ang = 0;
+        this.angSpd = 0.04;
+    }
+
+    update(dt){
+        this.timer += dt;
+
+        if(this.timer >= this.lifetime){
+            this.active = false;
+            return;
+        }
+
+        // Horizontal movement
+        this.x += this.hspd * dt;
+
+        // Vertical movement
+        this.vspd += this.gravity * dt;
+        this.y += this.vspd* dt;
+
+        // Ground collision and bounce
+        if(this.y >= this.groundY){
+            this.y = this.groundY;
+            this.vspd = -Math.abs(this.vspd) * this.bounce;
+        }
+
+        this.ang += this.angSpd*dt;
+
+        this.sprite.setPosition(this.x, this.y);
+        this.sprite.setRotation(this.ang);
+        this.box.setPosition(this.x, this.y);
     }
 }

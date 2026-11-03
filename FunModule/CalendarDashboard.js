@@ -31,7 +31,7 @@ class CalendarUtils{
         return `${weekday} ${now.toLocaleDateString()}`;
     }
 
-    static getWeekdayString(){
+    static getWeekDayString(){
         const now = new Date();
 
         const weekday =
@@ -45,7 +45,361 @@ class CalendarUtils{
         const numberOfDays = Math.floor((now - oneJan) / (24 * 60 * 60 * 1000));
         return numberOfDays;
     }
+
+    
+    static getClosestBirthday(birthdays) {
+        const today = new Date();
+
+        let closest = null;
+        let closestDiff = Infinity;
+
+        for (const birthday of birthdays) {
+            let date = new Date(today.getFullYear(), birthday.month - 1, birthday.day);
+
+            date.setHours(0, 0, 0, 0);
+
+            if (date < today) date.setFullYear(today.getFullYear() + 1);
+
+            const diff = date - today;
+
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                closest = birthday;
+            }
+        }
+
+        return closest;
+    }
+
+   static getSpecialPeriod(specialPeriods, date = new Date()){
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+
+        for(const period of specialPeriods){
+            const start = period.start.day;
+            const startMonth = period.start.month;
+
+            const startDate = new Date(date.getFullYear(), startMonth - 1, start);
+            const currentDate = new Date(date.getFullYear(), month - 1, day);
+
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + period.duration);
+
+            if(currentDate >= startDate && currentDate < endDate){
+                return period.name;
+            }
+
+            // Handle periods that cross the end of the year
+            if(startMonth === 12 && month === 1){
+                const nextYearStart = new Date(date.getFullYear() - 1, startMonth - 1, start);
+                const nextYearEnd = new Date(nextYearStart);
+                nextYearEnd.setDate(nextYearEnd.getDate() + period.duration);
+
+                if(currentDate >= nextYearStart && currentDate < nextYearEnd){
+                    return period.name;
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+    static getNextBirthdayDate(birthday){
+        const now = new Date();
+
+        let birthdayDate = new Date(now.getFullYear(), birthday.month - 1, birthday.day,0,0,0);
+
+        if (birthdayDate < now) {
+            birthdayDate.setFullYear(birthdayDate.getFullYear() + 1);
+        }
+
+        return birthdayDate;
+    }
+
+    static getRemainingTime(birthday) {
+
+        const now = new Date();
+        const target = CalendarUtils.getNextBirthdayDate(birthday);
+
+        const diff = target - now;
+
+        return {
+            diff,
+            days: Math.floor(diff / 86400000),
+            hours: Math.floor(diff / 3600000) % 24,
+            minutes: Math.floor(diff / 60000) % 60,
+            seconds: Math.floor(diff / 1000) % 60
+        };
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+class CalendarClock extends BaseObject{
+    constructor(x, y){
+        super(x, y);
+
+        this.progress = 0;
+        this.displaceAmount = 600;
+
+        this.textDate = new TextInstance("", this.x, this.y, "rgb(180,180,180)");
+        this.textDate.setAlign("left");
+        this.textDate.setFont("Fixedsys", 32);
+
+        this.textTime = new TextInstance("",this.x, this.y, "rgb(255,255,255)");
+        this.textTime.setAlign("left");
+        this.textTime.setFont("Fixedsys", 48);
+    }
+
+    update(dt){
+        if(!this.visible) return;
+        var xDisplace = -tweenInOut(1-this.progress)*this.displaceAmount;
+
+        this.textDate.setText(CalendarUtils.getDateString());
+        this.textTime.setText(CalendarUtils.getTimeString());
+
+        this.textDate.setPosition(this.x + xDisplace, this.y + 40);
+        this.textTime.setPosition(this.x + xDisplace, this.y + 100);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.textDate.draw(ctx);
+        this.textTime.draw(ctx);
+    }
+}
+
+class CalendarIntroClock extends BaseObject{
+      constructor(x, y){
+        super(x, y);
+        this.progress = 0;
+
+        this.textWeekDay = new TextInstance("", this.x, this.y, "rgb(180,180,180)");
+        this.textWeekDay.setAlignBaseline("center", "middle");
+        this.textWeekDay.setFont("Fixedsys", 64);
+    
+        this.textTime = new TextInstance("",this.x, this.y, "rgb(255,255,255)");
+        this.textTime.setAlignBaseline("center", "middle");
+        this.textTime.setFont("Fixedsys", 52);
+    }
+
+    update(dt){
+        if(!this.visible) return;
+        var introProg = this.progress;
+
+        var alpha = Math.min(zigzag(introProg)*3, 1);
+        alpha = tweenOut(alpha);
+
+        this.textWeekDay.setAlpha(alpha);
+        this.textTime.setAlpha(alpha);
+
+        this.textWeekDay.setText(CalendarUtils.getWeekDayString());
+        this.textTime.setText(CalendarUtils.getTimeString());
+
+        this.textWeekDay.setPosition(this.x, this.y - 50);
+        this.textTime.setPosition(this.x, this.y + 20);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.textWeekDay.draw(ctx);
+        this.textTime.draw(ctx);
+    }
+}
+
+class CalendarCountdownClock extends BaseObject{
+    constructor(x, y){
+        super(x, y);
+
+        this.progress = 0;
+        this.counting = true;
+        this.remainingTime = {days:0, hours:0, minutes:0, seconds:0};
+
+        this.revealMessage = "";
+        this.revealOrder = [];
+        this.revealThresholds = [];
+        this.revealIndex = 0;
+
+        this.setRevealMessage("ALOHA MY CAMARADA");
+
+        this.textCounter = new TextInstance("", this.x, this.y, "rgb(255,255,255)");
+        this.textCounter.setAlignBaseline("center", "middle");
+        this.textCounter.setFont("Fixedsys", 100);
+    }
+
+    startBirthday(){
+        this.counting = false;
+        this.textCounter.setText("FELIZ ANIVERSÁRIO!");
+        this.textCounter.setColor("rgb(255,255,0)");
+    }
+
+    setRevealMessage(message){
+        this.revealMessage = message;
+        this.revealOrder = [];
+        this.revealThresholds = [];
+        this.revealIndex = 0;
+        
+        // CREATE REVEAL THRESHOLDS
+        for (let i = 0; i < this.revealMessage.length; i++) {
+            this.revealThresholds.push(15 * (1 - i / this.revealMessage.length));
+            this.revealOrder.push(i);
+        }
+
+        // CREATE REVEAL ORDER
+        for (let i = this.revealOrder.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.revealOrder[i], this.revealOrder[j]] = [this.revealOrder[j], this.revealOrder[i]];
+        }
+
+        this.updateReveal();
+    }
+
+    updateReveal(){
+        if (!this.counting) return;
+        var totalHours = this.remainingTime.hours + this.remainingTime.days * 24;
+        var len = this.revealThresholds.length;
+
+        while (this.revealIndex < len && totalHours <= this.revealThresholds[this.revealIndex] * 24) {
+            this.revealIndex++;
+        }
+    }
+
+    update(dt){
+        if(!this.visible) return;
+
+        var alpha = tweenOut(this.progress);
+        this.textCounter.setAlpha(alpha);
+
+        var shakeX = 0;
+        var shakeY = 0;
+        if(this.counting){
+            // SHAKES THE COUNTER IF REACHING END
+            if (this.remainingTime.days === 0 && this.remainingTime.hours < 4) {
+                let amp = 6 - this.remainingTime.hours;
+                shakeX = Math.random() * amp - amp / 2;
+                shakeY = Math.random() * amp - amp / 2;
+            }
+
+            const dd = String(this.remainingTime.days).padStart(2, "0");    
+            const hh = String(this.remainingTime.hours).padStart(2, "0");
+            const mm = String(this.remainingTime.minutes).padStart(2, "0");
+            const ss = String(this.remainingTime.seconds).padStart(2, "0");
+
+            this.textCounter.setText(`${dd}:${hh}:${mm}:${ss}`);
+        }
+
+        this.textCounter.setPosition(this.x + shakeX, this.y + shakeY);        
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+
+        this.textCounter.draw(ctx);
+
+        
+        var alpha = tweenOut(this.progress);
+        // CHAR BY CHAR MESSAGE REVEALING
+        ctx.font = "60px Fixedsys";
+        ctx.fillStyle = "rgba(255,255,0,"+alpha+")";
+
+        const spacing = 60;
+        for (let j = 0; j < this.revealIndex; j++) {
+            var ind = this.revealOrder[j];
+            var char = this.revealMessage[ind];
+
+            const xx = this.x + spacing * ind - spacing * this.revealMessage.length / 2 + spacing / 2;
+            ctx.fillText(char, xx, this.y -120);
+        }
+    }
+}
+
+class CalendarDayMessage extends BaseObject{
+    constructor(x, y){
+        super(x, y);
+        this.progress = 0;
+
+        this.textMessage = new TextInstance("", this.x, this.y, "rgb(255,255,0)");
+        this.textMessage.setAlignBaseline("center", "middle");
+        this.textMessage.setFont("Fixedsys", 100);
+        
+        this.textSubMessage = new TextInstance("",this.x, this.y, "rgb(255,255,0)");
+        this.textSubMessage.setAlignBaseline("center", "middle");
+        this.textSubMessage.setFont("Fixedsys", 60);
+    }
+
+    setMessage(text){
+        this.textMessage.setText(text);
+    }
+
+    setSubMessage(text){
+        this.textSubMessage.setText(text);
+    }
+
+    update(dt){
+        if(!this.visible) return;
+        var scl = tweenOut(this.progress);
+        this.textMessage.setScale(scl);
+        this.textSubMessage.setScale(scl);
+        this.textMessage.setPosition(this.x, this.y);
+        this.textSubMessage.setPosition(this.x, this.y + 80);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.textMessage.draw(ctx);
+        this.textSubMessage.draw(ctx);
+    }
+}
+
+class CalendarDaysLeft extends BaseObject{
+    constructor(x, y){
+        super(x, y);
+        this.progress = 0;
+
+        this.displaceAmount = 400;
+        this.remainingTime = {days:0, hours:0, minutes:0, seconds:0};
+
+        this.textDaysLeft = new TextInstance("", this.x, this.y, "rgb(255,255,255)");
+        this.textDaysLeft.setAlignBaseline("center", "middle");
+        this.textDaysLeft.setFont("Fixedsys", 60);
+    
+        this.textUntilBday = new TextInstance("ATÉ O ANIVERSÁRIO", this.x, this.y, "rgb(255,255,255)");
+        this.textUntilBday.setAlignBaseline("center", "middle");
+        this.textUntilBday.setFont("Fixedsys", 40);
+    }
+
+    update(dt){
+        if(!this.visible) return;
+
+        var yDisplace = tweenInOut(1-this.progress)*400;
+        var daysLeftY = yDisplace;
+
+        this.textDaysLeft.setPosition(this.x, this.y + daysLeftY);
+        this.textUntilBday.setPosition(this.x, this.y + daysLeftY + 60);
+
+        this.textDaysLeft.setText(`${this.remainingTime.days} DIAS`);
+    }
+
+    draw(ctx){
+        if(!this.visible) return;
+        this.textDaysLeft.draw(ctx);
+        this.textUntilBday.draw(ctx);
+    }
+}
+
+
+
+
+
 
 
 class CalendarDashboard extends BaseObject {
@@ -62,10 +416,18 @@ class CalendarDashboard extends BaseObject {
         this.specialPeriods = [
             {name: "Easter", start:{day:22, month:3}, duration:34},
             {name: "April Fools", start:{day:1, month:4}, duration:2},
-            {name: "Halloween", start:{day:20, month:10}, duration:12},
+            {name: "Halloween", start:{day:20, month:10}, duration:15},
             {name: "Christmas", start:{day:22, month:12}, duration:5},
-            {name: "New Year", start:{day:31, month:12}, duration:2}
+            {name: "New Year", start:{day:31, month:12}, duration:2},
+            {name: "Children Day", start:{day:11, month:10}, duration:3}
         ];
+
+        this.specialPeriod = CalendarUtils.getSpecialPeriod(this.specialPeriods);
+        if(this.specialPeriod) {
+            console.log(this.specialPeriod);
+        } else {
+            console.log("Normal day");
+        }
 
         // Messages
         this.messages = [
@@ -80,122 +442,64 @@ class CalendarDashboard extends BaseObject {
             {text: "APROVEITE O DIA", tags: ["kind"]},
         ];
 
-        
-
+    
+        // CALCULATING BIRTHDATE DAYS LEFT
         for(var birthday of this.birthdays){
-            birthday.remaining = this.getRemainingTime(birthday).days;
+            birthday.remaining = CalendarUtils.getRemainingTime(birthday).days;
             birthday.remainText = String(birthday.remaining).padStart(3, " ");
         }
-
         this.birthdays.sort((a,b) => a.remaining - b.remaining);
+        this.closestBirthday = CalendarUtils.getClosestBirthday(this.birthdays);
 
-        this.closestBirthday = this.getClosestBirthday(this.birthdays);
         // Birthday
         this.birthMonth = this.closestBirthday.month;
         this.birthDay = this.closestBirthday.day;
 
-        // Actual Time
-        this.actSec = 0;
-        this.prevSec = 0;
-
         // Display
-        this.days = 0;
-        this.hours = 0;
-        this.minutes = 0;
-        this.seconds = 0;
+        const remaining = CalendarUtils.getRemainingTime(this.closestBirthday);
 
+        this.days = remaining.days;
+        this.hours = remaining.hours;
+        this.minutes = remaining.minutes;
+        this.seconds = remaining.seconds;
+
+        // STATES
         this.done = false;
-
-   
-
-
-
-        this.shakeX = 0;
-        this.shakeY = 0;
-
-
-
-        this.message = this.getMessageOfTheDay().text;
-        this.messageSubtext = this.getMessageOfTheDay().subtext;
-
-        // Reveal system
-        this.revealOrder = this.createRevealOrder(this.message);
-        this.letterIndex = 0;
-
-
-
         this.finishedIntro = false;
+
+
+        
+        // CALENDAR OBJECTS
+        this.objects = [];
+        this.hud = {
+            counter: new CalendarCountdownClock(this.x, this.y),
+            daysLeft: new CalendarDaysLeft(this.x, this.y + 180),
+            dayMessage: new CalendarDayMessage(this.x, this.y),
+            clock: new CalendarClock(this.x -canvasWidth/2, this.y -canvasHeight/2),
+            introClock: new CalendarIntroClock(this.x, this.y)
+        };
+
+        this.objects.push(...Object.values(this.hud));
+
+        this.hud.dayMessage.setMessage(this.getMessageOfTheDay().text);
+        this.hud.dayMessage.setSubMessage(this.getMessageOfTheDay().subtext ?? "");
+        
+        // HIDES 
+        if(this.isCountdownMode()){
+            this.hud.dayMessage.visible = false;
+            this.hud.clock.visible = false;
+            this.hud.daysLeft.visible = false;
+            this.hud.counter.setRevealMessage("POLINÉSIA ALEMÃ");
+        } else {
+            this.hud.counter.visible = false;
+        }
+
 
         this.stateMachine = new StateMachine([introDuration, 50, 200]);
         this.stateMachine.autoProgress = true;
         this.stateMachine.onStateChange = (state) => {
             this.onStateChange(state);
         }
-    }
-
-    getClosestBirthday(birthdays) {
-        const today = new Date();
-
-        let closest = null;
-        let closestDiff = Infinity;
-
-        for (const birthday of birthdays) {
-            let date = new Date(
-                today.getFullYear(),
-                birthday.month - 1, // JS months are 0-11
-                birthday.day
-            );
-
-            // Birthday already happened this year → use next year
-            if (date < today) {
-                date.setFullYear(today.getFullYear() + 1);
-            }
-
-            const diff = date - today;
-
-            if (diff < closestDiff) {
-                closestDiff = diff;
-                closest = birthday;
-            }
-        }
-
-        return closest;
-    }
-
-
-    getNextBirthdayDate(birthday){
-        const now = new Date();
-
-        let birthdayDate = new Date(
-            now.getFullYear(),
-            birthday.month - 1,
-            birthday.day,
-            0,
-            0,
-            0
-        );
-
-        if (birthdayDate < now) {
-            birthdayDate.setFullYear(birthdayDate.getFullYear() + 1);
-        }
-
-        return birthdayDate;
-    }
-
-    getRemainingTime(birthday = this.closestBirthday) {
-
-        const now = new Date();
-        const target = this.getNextBirthdayDate(birthday);
-
-        const diff = target - now;
-
-        return {
-            diff,
-            days: Math.floor(diff / 86400000),
-            hours: Math.floor(diff / 3600000) % 24,
-            minutes: Math.floor(diff / 60000) % 60,
-            seconds: Math.floor(diff / 1000) % 60
-        };
     }
 
     isCountdownMode() {
@@ -209,30 +513,7 @@ class CalendarDashboard extends BaseObject {
         return this.messages[seed % this.messages.length];
     }
 
-    createRevealOrder(message) {
-        const order = [];
-
-        for (let i = 0; i < message.length; i++) {
-            order.push(i);
-        }
-
-        for (let i = order.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [order[i], order[j]] = [order[j], order[i]];
-        }
-
-        return order;
-    }
-
  
-
-    
-
-
-    
-
-
-
     onStateChange(state){
         if(state == 1){
             this.finishedIntro = true;
@@ -240,177 +521,49 @@ class CalendarDashboard extends BaseObject {
         }
     }
 
+
+    startBirthday(){
+        this.hud.counter.startBirthday();
+    }
+
     update(dt) {
-
-
         this.stateMachine.update(dt);
 
-        const remaining = this.getRemainingTime();
+        // CALCULATING TIME REMAINING TILL BIRTHDAY
+        const remaining = CalendarUtils.getRemainingTime(this.closestBirthday);
 
         this.days = remaining.days;
         this.hours = remaining.hours;
         this.minutes = remaining.minutes;
         this.seconds = remaining.seconds;
 
-        const totalHours = remaining.diff / 3600000;
-
-        if (this.isCountdownMode()) {
-            const revealThresholds = [];
-
-            for (let i = 0; i < this.message.length; i++) {
-                revealThresholds.push(15 * (1 - i / this.message.length));
-            }
-
-            while (this.letterIndex < revealThresholds.length && totalHours <= revealThresholds[this.letterIndex] * 24) {
-                this.letterIndex++;
+        // STARTS BIRTHDAY IF THE REMAINING TIME REACHES 0
+        if(!this.done){
+            if (remaining.diff <= 0) {
+                this.startBirthday();
+                this.done = true;
             }
         }
 
-        if (remaining.diff <= 0) {
-            this.done = true;
-        }
+        // UPDATING CALENDAR SUBOBJECTS
+        this.hud.daysLeft.remainingTime = remaining;
+        this.hud.counter.remainingTime = remaining;
 
-        if (this.days === 0 && this.hours < 4) {
-            let amp = 6 - this.hours;
-            this.shakeX = Math.random() * amp - amp / 2;
-            this.shakeY = Math.random() * amp - amp / 2;
+        for(var obj of this.objects){
+            obj.progress = this.stateMachine.getProgress(2);
+            if(obj == this.hud.introClock){
+                this.hud.introClock.progress = this.stateMachine.getProgress(0);
+            }
+            obj.update(dt);
         }
-
-        //this.animeText.update(dt);
 
         manager.addDrawObject(this);
     }
 
-    drawHud(ctx){
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        if(!this.isCountdownMode()){
-
-            var xDisplace = -tweenInOut(1-this.stateMachine.getProgress(2))*600;
-
-            ctx.font = "32px Fixedsys";
-            ctx.textAlign = "left";
-            ctx.fillStyle = "rgb(180,180,180)";
-            ctx.fillText(CalendarUtils.getDateString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 40);
-            
-            ctx.textAlign = "left";
-            ctx.font = "48px Fixedsys";
-            ctx.fillStyle = "rgb(255,255,255)";
-            ctx.fillText(CalendarUtils.getTimeString(), -canvasWidth/2 + 20 + xDisplace, -canvasHeight/2 + 100);
-
-            
-            ctx.textAlign = "left";
-            ctx.font = "24px Fixedsys";
-            
-            // for(var i = 0; i < this.birthdays.length; i++){
-            //     var birth = this.birthdays[this.birthdays.length-1 - i];
-            //     var light = 55 - (this.birthdays.length-1 - i)*15;
-            //     ctx.fillStyle = "rgb("+light+","+light+","+light+")";
-            //     ctx.fillText(birth.name + " " + birth.remainText, -canvasWidth/2 + 20 + xDisplace, +canvasHeight/2 - 20 -20*i);
-            // }
-            // ctx.font = "30px Fixedsys";
-            // ctx.fillStyle = "rgb(70, 70, 70)";
-            // ctx.fillText("Dias", -canvasWidth/2 + 20 + xDisplace, +canvasHeight/2 - 20 -20*4.5);
-            
-        }
-
-        ctx.font = "100px Fixedsys";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        if (this.done) {
-            ctx.fillStyle = "rgb(255,255,0)";
-            ctx.fillText("FELIZ ANIVERSÁRIO!", this.x, this.y);
-        } else if (this.isCountdownMode()) {
-            const dd = String(this.days).padStart(2, "0");
-            const hh = String(this.hours).padStart(2, "0");
-            const mm = String(this.minutes).padStart(2, "0");
-            const ss = String(this.seconds).padStart(2, "0");
-
-            ctx.fillStyle = "rgb(255,255,255)";
-            ctx.fillText(`${dd}:${hh}:${mm}:${ss}`, this.x, this.y);
-        } else {
-
-            var messageY = -60;
-            var prog = this.stateMachine.getProgress(2);
-            ctx.font = Math.floor(100 - (1-tweenOut(prog))*100) + "px Fixedsys";
-            ctx.fillStyle = "rgb(255,255,0)";
-            ctx.fillText(this.message, 0, messageY);
-
-            
-            if(this.messageSubtext){
-                ctx.font = Math.floor(60 - (1-tweenOut(prog))*60) + "px Fixedsys";
-                ctx.fillStyle = "rgb(255,255,0)";
-                ctx.fillText(this.messageSubtext, 0, messageY + 80);
-            }
-
-
-            var yDisplace = tweenInOut(1-prog)*400;
-            ctx.font = "60px Fixedsys";
-            var daysLeftY = 180 + yDisplace;
-            ctx.fillStyle = "rgb(255,255,255)";
-            ctx.fillText(`${this.days} DIAS`, 0, daysLeftY);
-
-            ctx.font = "40px Fixedsys";
-            ctx.fillText("ATÉ O ANIVERSÁRIO!", 0, daysLeftY + 60);
-        }
-
-        if (this.isCountdownMode() && !this.done) {
-            ctx.font = "60px Fixedsys";
-            ctx.fillStyle = "rgb(255,255,0)";
-
-            const spacing = 60;
-
-            for (let i = 0; i < this.message.length; i++) {
-                let visible = false;
-
-                for (let j = 0; j < this.letterIndex; j++) {
-                    if (this.revealOrder[j] === i) {
-                        visible = true;
-                        break;
-                    }
-                }
-
-                if (!visible) {
-                    continue;
-                }
-
-                const xx = spacing * i - spacing * this.message.length / 2 + spacing / 2;
-                ctx.fillText(this.message[i], xx, -120);
-            }
-        }
-    }
-
-    drawIntro(ctx){
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        var introProg = this.stateMachine.getProgress(0);
-
-        var alpha = Math.min(zigzag(introProg)*3, 1);
-        alpha = tweenOut(alpha);
-
-        ctx.font = "64px Fixedsys";
-        ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(180,180,180, " + alpha + ")";
-        ctx.fillText(CalendarUtils.getWeekdayString(),0, -50);
-        
-        ctx.textAlign = "center";
-        ctx.font = "52px Fixedsys";
-        ctx.fillStyle = "rgba(255,255,255, " + alpha + ")";
-        ctx.fillText(CalendarUtils.getTimeString(), 0, 20);
-        
-    }
 
     draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x +this.shakeX, this.y +this.shakeY);
-
-        this.drawHud(ctx);
-        this.drawIntro(ctx);
-
-
-        ctx.restore();
+        for(var obj of this.objects){
+            obj.draw(ctx);
+        }
     }
 }
